@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, "Iowan Old Style", Georgia, serif;
+
+  --color-bg: #e8ece9;
+  --color-bg-warm: #e3e8e4;
+  --color-surface: #faf8f3;
+  --color-surface-2: #efe9db;
+  --color-ink: #1f1c18;
+  --color-ink-soft: #5c564e;
+  --color-muted: #8a8478;
+  --color-line: #d9d1c2;
+  --color-line-strong: #c4baa6;
+  --color-accent: #2f5d50;
+  --color-accent-fg: #f4f1ea;
+  --color-accent-soft: #dce8e3;
+  --color-var: #17606c;
+  --color-coef: #b44a28;
+  --color-const: #3a6a36;
+  --color-ok: #2f5d50;
+  --color-bad: #9b3a2a;
+  --color-bad-soft: #f3e4df;
+  --color-ok-soft: #dce8e3;
+  --color-rule: #e3b8b0;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+
+  --shadow-border:
+    0px 0px 0px 1px rgba(31, 28, 24, 0.07),
+    0px 1px 2px -1px rgba(31, 28, 24, 0.06),
+    0px 2px 8px 0px rgba(31, 28, 24, 0.04);
+  --shadow-border-hover:
+    0px 0px 0px 1px rgba(31, 28, 24, 0.1),
+    0px 1px 2px -1px rgba(31, 28, 24, 0.08),
+    0px 8px 20px 0px rgba(31, 28, 24, 0.06);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-bg);
+    color: var(--color-ink);
+  }
+
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-bg);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 10% -10%, rgba(47, 93, 80, 0.07), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(23, 96, 108, 0.06), transparent);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-accent-soft);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  .paper-sheet {
+    background-color: var(--color-surface);
+    background-image:
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--color-rule) 50%, transparent) 0 1px,
+        transparent 1px
+      ),
+      repeating-linear-gradient(
+        transparent 0 39px,
+        color-mix(in oklab, var(--color-ink) 7%, transparent) 39px 40px
+      );
+    background-position: 1.35rem 0, 0 1.1rem;
+    background-size: 100% 100%, 100% 40px;
+  }
+
+  .tok-var {
+    color: var(--color-var);
+    font-style: italic;
+    font-weight: inherit;
+  }
+
+  .tok-coef,
+  .tok-const {
+    font-variant-numeric: lining-nums tabular-nums;
+    font-weight: inherit;
+  }
+
+  .tok-coef {
+    color: var(--color-coef);
+  }
+
+  .tok-const {
+    color: var(--color-const);
+  }
+
+  .step-enter {
+    animation: step-in 400ms var(--ease-out) both;
+  }
+
+  @keyframes step-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+      filter: blur(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step-enter {
+    animation: none;
+  }
+}
