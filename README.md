@@ -18,4 +18,4 @@ Then open the address it prints (usually http://localhost:8080).
 
 The classroom core is free to use.
 
-Chance Lab: https://chancelab.ai/
+Chance Lab: https://chancelab.app/

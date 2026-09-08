@@ -469,7 +469,7 @@ export function StepboardApp() {
         <p className="text-center text-xs text-muted">
           For more math fun, visit{" "}
           <a
-            href="https://chancelab.ai/"
+            href="https://chancelab.app/"
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-line underline-offset-2 hover:text-ink-soft"
