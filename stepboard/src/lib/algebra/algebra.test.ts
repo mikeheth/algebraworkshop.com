@@ -555,6 +555,69 @@ describe("inequalities", () => {
     const last = checks[checks.length - 1]!;
     assert.match(last.explanation, /is true/);
   });
+
+  it("writes inequality money stories as a budget, not a tacked-on bound", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 4,
+      leftB: 8,
+      rightA: 0,
+      rightB: 40,
+      presentation: { form: "standard" },
+      relation: "≤",
+    };
+    const word = makeWordProblem(eq, 8);
+    const text = `${word.story} ${word.question}`;
+    assert.doesNotMatch(text, /Treat the ending number as a bound/i);
+    assert.doesNotMatch(word.story, /The total is/i);
+    assert.match(word.story, /only had \$40 to spend/i);
+    assert.match(word.question, /could .+ have bought/i);
+    assert.match(word.question, /maximum, not an exact total/i);
+    assertStoryMatchesEquation(eq, word.story, word.question);
+  });
+
+  it("does not charge for a ride when the item is tickets", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 4,
+      leftB: 8,
+      rightA: 0,
+      rightB: 40,
+      presentation: { form: "standard" },
+      relation: "≤",
+    };
+    let ticketStories = 0;
+    for (let i = 0; i < 60; i++) {
+      const word = makeWordProblem(eq, 8);
+      const text = `${word.story} ${word.question}`;
+      assert.doesNotMatch(text, /for a ride/i);
+      if (/\btickets?\b/i.test(word.story)) ticketStories += 1;
+    }
+    assert.ok(ticketStories > 0, "expected some ticket stories in the sample");
+  });
+
+  it("keeps inequality word problems reconstructable", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      wordProblem: true,
+      stepCount: 2,
+      negatives: true,
+      difficulty: "medium",
+    };
+    for (let i = 0; i < 25; i++) {
+      const problem = generateProblem(s, "inequalities");
+      assert.ok(problem.word, problem.structureLabel);
+      assert.doesNotMatch(
+        `${problem.word.story} ${problem.word.question}`,
+        /Treat the ending number as a bound/i,
+      );
+      assertStoryMatchesEquation(
+        problem.eq,
+        problem.word.story,
+        problem.word.question,
+      );
+    }
+  });
 });
 
 function assertStoryMatchesEquation(
