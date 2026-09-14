@@ -19,11 +19,13 @@ export function ControlsPanel({
   onChange,
   onReset,
   onNew,
+  noun = "equation",
 }: {
   settings: Settings;
   onChange: (patch: Partial<Settings>) => void;
   onReset: () => void;
   onNew: () => void;
+  noun?: "equation" | "inequality";
 }) {
   const [open, setOpen] = useState(false);
 
@@ -183,7 +185,7 @@ export function ControlsPanel({
 
         <div className="flex gap-2 pt-1">
           <Button className="flex-1" onClick={onNew}>
-            New equation
+            New {noun}
           </Button>
           <Button
             variant="outline"
@@ -196,7 +198,7 @@ export function ControlsPanel({
         </div>
 
         <p className="text-xs leading-relaxed text-muted">
-          Integer solutions only. Ranges steer generation; a new equation always
+          Integer solutions only. Ranges steer generation; a new {noun} always
           matches the current step count.
         </p>
       </div>

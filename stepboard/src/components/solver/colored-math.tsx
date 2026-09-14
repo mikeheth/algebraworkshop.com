@@ -32,7 +32,7 @@ export function EquationView({
     >
       <div className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
         <TokenRow tokens={line.left} />
-        <span className="text-ink-soft px-0.5">=</span>
+        <span className="text-ink-soft px-0.5">{line.rel ?? "="}</span>
         <TokenRow tokens={line.right} />
       </div>
       {annotation ? (

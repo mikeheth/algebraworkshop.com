@@ -462,6 +462,101 @@ describe("algebra generator", () => {
   });
 });
 
+describe("inequalities", () => {
+  it("reverses the sign when dividing by a negative", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: -5,
+      leftB: 0,
+      rightA: 0,
+      rightB: 20,
+      presentation: { form: "standard" },
+      relation: ">",
+    };
+    const { steps } = solveEquation(eq, -4);
+    const div = steps.find((s) => s.operation?.kind === "divide");
+    assert.ok(div);
+    assert.equal(div.operation?.reverse, true);
+    assert.equal(div.line.rel, "<");
+    const sol = steps.find((s) => s.isSolution);
+    assert.ok(sol);
+    assert.equal(sol.line.rel, "<");
+    assert.match(sol.explanation, /x < −?4|x < -4/);
+  });
+
+  it("does not reverse when dividing by a positive", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 4,
+      leftB: 8,
+      rightA: 0,
+      rightB: 24,
+      presentation: { form: "standard" },
+      relation: "≥",
+    };
+    const { steps } = solveEquation(eq, 4);
+    const div = steps.find((s) => s.operation?.kind === "divide");
+    assert.ok(div);
+    assert.equal(div.operation?.reverse, false);
+    const sol = steps.find((s) => s.isSolution);
+    assert.ok(sol);
+    assert.equal(sol.line.rel, "≥");
+  });
+
+  it("generates integer inequality problems", () => {
+    for (let i = 0; i < 20; i++) {
+      const problem = generateProblem(
+        { ...DEFAULT_SETTINGS, stepCount: 2, negatives: true },
+        "inequalities",
+      );
+      assert.ok(problem.eq.relation && problem.eq.relation !== "=");
+      assert.ok(problem.steps.some((s) => s.isSolution));
+      const last = problem.steps[problem.steps.length - 1];
+      assert.match(last!.explanation, /is true/);
+    }
+  });
+
+  it("offers reverse-the-sign as the correct divide move", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: -5,
+      leftB: 0,
+      rightA: 0,
+      rightB: 20,
+      presentation: { form: "standard" },
+      relation: ">",
+    };
+    const { steps } = solveEquation(eq, -4);
+    const choices = practiceChoices(steps[0]!, steps);
+    const ok = choices.find((c) => c.correct);
+    assert.ok(ok);
+    assert.equal(ok.reverse, true);
+    assert.match(ok.label, /reverse the inequality/i);
+    const distractor = choices.find((c) => c.id === "d-no-flip");
+    assert.ok(distractor);
+    assert.equal(distractor.correct, false);
+    assert.match(distractor.whyWrong ?? "", /reverses the inequality/);
+  });
+
+  it("checks a test point from the solution set", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 2,
+      leftB: 4,
+      rightA: 0,
+      rightB: 12,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    const { steps } = solveEquation(eq, 4);
+    const checks = steps.filter((s) => s.isCheck);
+    assert.ok(checks.length >= 2);
+    assert.match(checks[0]!.explanation, /x = 3/);
+    const last = checks[checks.length - 1]!;
+    assert.match(last.explanation, /is true/);
+  });
+});
+
 function assertStoryMatchesEquation(
   eq: LinearEq,
   story: string,

@@ -1,5 +1,6 @@
-import { pick } from "./random";
-import type { LinearEq, Presentation, WordProblem } from "./types";
+import { pick } from "./random.ts";
+import type { LinearEq, Presentation, Relation, WordProblem } from "./types.ts";
+import { relationOf } from "./types.ts";
 
 const NAMES = [
   "Ava",
@@ -85,7 +86,39 @@ export function makeWordProblem(
   const word = buildStory(eq, solution, ctx);
   const text = `${word.story} ${word.question} ${word.unknown}`;
   if (solution <= 0 && COUNT_NOUN.test(text)) return numberMachine(eq, ctx);
-  return word;
+  return withBoundLanguage(word, eq);
+}
+
+function boundPhrase(rel: Relation, amount: string): string {
+  switch (rel) {
+    case ">":
+      return `must be more than ${amount}`;
+    case "≥":
+      return `must be at least ${amount}`;
+    case "<":
+      return `must be fewer than ${amount}`;
+    case "≤":
+      return `must be at most ${amount}`;
+    default:
+      return `is ${amount}`;
+  }
+}
+
+function displayBound(eq: LinearEq): string {
+  const n =
+    eq.presentation.form === "quotient" ? eq.presentation.right : eq.rightB;
+  return Number.isInteger(n) && Math.abs(n) >= 8 ? `$${Math.abs(n)}` : String(n);
+}
+
+function withBoundLanguage(word: WordProblem, eq: LinearEq): WordProblem {
+  const rel = relationOf(eq);
+  if (rel === "=") return word;
+  const amount = displayBound(eq);
+  return {
+    ...word,
+    story: `${word.story} Treat the ending number as a bound: the result ${boundPhrase(rel, amount)}.`,
+    question: `Write the inequality and solve. Which values of ${eq.variable} work?`,
+  };
 }
 
 function buildStory(eq: LinearEq, solution: number, ctx: StoryCtx): WordProblem {

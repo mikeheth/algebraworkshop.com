@@ -1,4 +1,9 @@
-import type { EquationLine, LinearEq, MathToken, Presentation } from "./types";
+import type { EquationLine, LinearEq, MathToken, Presentation, Relation } from "./types.ts";
+import { relationOf } from "./types.ts";
+
+function withRel(line: EquationLine, rel: Relation): EquationLine {
+  return { ...line, rel };
+}
 
 export function abs(n: number): number {
   return Math.abs(n);
@@ -50,10 +55,13 @@ export function variableTerm(
 }
 
 export function lineFromLinear(eq: LinearEq): EquationLine {
-  return {
-    left: sideFromLinear(eq.leftA, eq.leftB, eq.variable),
-    right: sideFromLinear(eq.rightA, eq.rightB, eq.variable),
-  };
+  return withRel(
+    {
+      left: sideFromLinear(eq.leftA, eq.leftB, eq.variable),
+      right: sideFromLinear(eq.rightA, eq.rightB, eq.variable),
+    },
+    relationOf(eq),
+  );
 }
 
 export function lineFromPresentation(
@@ -61,6 +69,7 @@ export function lineFromPresentation(
   eq: LinearEq,
 ): EquationLine {
   const v = eq.variable;
+  const rel = relationOf(eq);
   switch (p.form) {
     case "distribute": {
       const inner: MathToken[] = [
@@ -68,15 +77,18 @@ export function lineFromPresentation(
         { type: "op", value: p.innerB < 0 ? "−" : "+" },
         { type: "const", value: abs(p.innerB) },
       ];
-      return {
-        left: [
-          { type: "coef", value: p.outer },
-          { type: "op", value: "(" },
-          { type: "group", tokens: inner },
-          { type: "op", value: ")" },
-        ],
-        right: sideFromLinear(0, eq.rightB, v),
-      };
+      return withRel(
+        {
+          left: [
+            { type: "coef", value: p.outer },
+            { type: "op", value: "(" },
+            { type: "group", tokens: inner },
+            { type: "op", value: ")" },
+          ],
+          right: sideFromLinear(0, eq.rightB, v),
+        },
+        rel,
+      );
     }
     case "combine": {
       const left = variableTerm(p.a, v, true);
@@ -84,20 +96,23 @@ export function lineFromPresentation(
       left.push({ type: "const", value: abs(p.b1) });
       left.push({ type: "op", value: p.b2 < 0 ? "−" : "+" });
       left.push({ type: "const", value: abs(p.b2) });
-      return { left, right: sideFromLinear(0, eq.rightB, v) };
+      return withRel({ left, right: sideFromLinear(0, eq.rightB, v) }, rel);
     }
     case "quotient": {
       const inner = sideFromLinear(1, p.innerB, v);
-      return {
-        left: [
-          {
-            type: "frac",
-            num: [{ type: "group", tokens: inner }],
-            den: [{ type: "const", value: p.divisor }],
-          },
-        ],
-        right: [{ type: "const", value: p.right }],
-      };
+      return withRel(
+        {
+          left: [
+            {
+              type: "frac",
+              num: [{ type: "group", tokens: inner }],
+              den: [{ type: "const", value: p.divisor }],
+            },
+          ],
+          right: [{ type: "const", value: p.right }],
+        },
+        rel,
+      );
     }
     default:
       return lineFromLinear(eq);
@@ -134,30 +149,36 @@ export function divideGroupLine(eq: LinearEq): EquationLine {
   const grouped = lineFromPresentation(p, eq);
   const divisor =
     p.form === "distribute" ? p.outer : eq.leftA || 1;
-  return {
-    left: [
-      {
-        type: "frac",
-        num: grouped.left,
-        den: signedNumeric(divisor, "coef"),
-      },
-    ],
-    right: [
-      {
-        type: "frac",
-        num: grouped.right,
-        den: signedNumeric(divisor, "const"),
-      },
-    ],
-  };
+  return withRel(
+    {
+      left: [
+        {
+          type: "frac",
+          num: grouped.left,
+          den: signedNumeric(divisor, "coef"),
+        },
+      ],
+      right: [
+        {
+          type: "frac",
+          num: grouped.right,
+          den: signedNumeric(divisor, "const"),
+        },
+      ],
+    },
+    relationOf(eq),
+  );
 }
 
 /** (ax)/d ± b/d = c/d — every term is divided, not just the variable. */
 export function divideAllTermsLine(eq: LinearEq, divisor: number): EquationLine {
-  return {
-    left: divideSideTerms(eq.leftA, eq.leftB, eq.variable, divisor),
-    right: divideSideTerms(eq.rightA, eq.rightB, eq.variable, divisor),
-  };
+  return withRel(
+    {
+      left: divideSideTerms(eq.leftA, eq.leftB, eq.variable, divisor),
+      right: divideSideTerms(eq.rightA, eq.rightB, eq.variable, divisor),
+    },
+    relationOf(eq),
+  );
 }
 
 function divideSideTerms(
@@ -326,7 +347,8 @@ export function operationPhrase(
 }
 
 export function equationPlain(line: EquationLine): string {
-  return `${tokensPlain(line.left)} = ${tokensPlain(line.right)}`;
+  const rel = line.rel ?? "=";
+  return `${tokensPlain(line.left)} ${rel} ${tokensPlain(line.right)}`;
 }
 
 function tokensPlain(tokens: MathToken[]): string {

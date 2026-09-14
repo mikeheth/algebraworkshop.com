@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Stepboard";
+const APP_NAME = "Algebra Workshop";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Algebra 1 equation solver that works one-, two-, and three-step equations line by line.",
+          "Algebra Workshop: line-by-line Algebra 1. Stepboard is free. Inequalities is Plus.",
       },
       { name: "theme-color", content: "#2f5d50" },
     ],

@@ -1,10 +1,13 @@
 # Algebra Workshop
 
-Classroom tools for Algebra 1 and beyond.
+Classroom tools for Algebra 1, line by line.
 
-**Stepboard** is the first app: one-, two-, and three-step equations, worked line by line.
+- **Stepboard** (free) — one-, two-, and three-step equations, with practice mode and word problems
+- **Inequalities** (Plus) — the same teaching board, with sign flip when multiplying or dividing by a negative, plus a number-line graph
 
-## Run Stepboard on your computer
+Live: https://algebraworkshop.com
+
+## Run it on your computer
 
 You need [Node.js](https://nodejs.org/) 22 or newer.
 
@@ -16,6 +19,6 @@ npm run dev
 
 Then open the address it prints (usually http://localhost:8080).
 
-The classroom core is free to use.
+The classroom core (Stepboard) is free to use. Inequalities is a Plus board; preview stays open until billing does.
 
 Chance Lab: https://chancelab.app/

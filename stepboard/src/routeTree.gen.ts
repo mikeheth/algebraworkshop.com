@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as InequalitiesRouteImport } from './routes/inequalities'
+import { Route as StepboardRouteImport } from './routes/stepboard'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InequalitiesRoute = InequalitiesRouteImport.update({
+  id: '/inequalities',
+  path: '/inequalities',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StepboardRoute = StepboardRouteImport.update({
+  id: '/stepboard',
+  path: '/stepboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/inequalities': typeof InequalitiesRoute
+  '/stepboard': typeof StepboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/inequalities': typeof InequalitiesRoute
+  '/stepboard': typeof StepboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/inequalities': typeof InequalitiesRoute
+  '/stepboard': typeof StepboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/inequalities' | '/stepboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/inequalities' | '/stepboard'
+  id: '__root__' | '/' | '/inequalities' | '/stepboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  InequalitiesRoute: typeof InequalitiesRoute
+  StepboardRoute: typeof StepboardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/inequalities': {
+      id: '/inequalities'
+      path: '/inequalities'
+      fullPath: '/inequalities'
+      preLoaderRoute: typeof InequalitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stepboard': {
+      id: '/stepboard'
+      path: '/stepboard'
+      fullPath: '/stepboard'
+      preLoaderRoute: typeof StepboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  InequalitiesRoute: InequalitiesRoute,
+  StepboardRoute: StepboardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

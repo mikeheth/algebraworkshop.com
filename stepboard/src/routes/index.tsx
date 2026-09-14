@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { StepboardApp } from "@/components/solver/stepboard-app";
+import { WorkshopHome } from "@/components/workshop/home";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
-  return <StepboardApp />;
+  return <WorkshopHome />;
 }

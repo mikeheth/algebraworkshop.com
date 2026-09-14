@@ -7,13 +7,76 @@ import {
   lineFromPresentation,
   operationPhrase,
   substitutionLine,
-} from "./format";
+} from "./format.ts";
 import type {
   EquationLine,
   LinearEq,
   PracticeChoice,
+  Relation,
   SolveStep,
-} from "./types";
+} from "./types.ts";
+import { flipRelation, isInequality, relationOf } from "./types.ts";
+
+function maybeReverse(eq: LinearEq, factor: number): boolean {
+  if (isInequality(relationOf(eq)) && factor < 0) {
+    eq.relation = flipRelation(relationOf(eq));
+    return true;
+  }
+  return false;
+}
+
+function relPhrase(rel: Relation): string {
+  switch (rel) {
+    case "<":
+      return "less than";
+    case ">":
+      return "greater than";
+    case "≤":
+      return "less than or equal to";
+    case "≥":
+      return "greater than or equal to";
+    default:
+      return "equal to";
+  }
+}
+
+function testPoint(solution: number, rel: Relation): number {
+  if (rel === ">" || rel === "≥") return solution + 1;
+  if (rel === "<" || rel === "≤") return solution - 1;
+  return solution;
+}
+
+function holds(left: number, right: number, rel: Relation): boolean {
+  switch (rel) {
+    case "<":
+      return left < right;
+    case ">":
+      return left > right;
+    case "≤":
+      return left <= right;
+    case "≥":
+      return left >= right;
+    default:
+      return left === right;
+  }
+}
+
+function propertyFor(
+  kind: "add" | "subtract" | "multiply" | "divide",
+  ineq: boolean,
+): string {
+  const of = ineq ? "Inequality" : "Equality";
+  switch (kind) {
+    case "add":
+      return `Addition Property of ${of}`;
+    case "subtract":
+      return `Subtraction Property of ${of}`;
+    case "multiply":
+      return `Multiplication Property of ${of}`;
+    case "divide":
+      return `Division Property of ${of}`;
+  }
+}
 
 let stepSeq = 0;
 function nid(): string {
@@ -30,23 +93,29 @@ export function solveEquation(
   const steps: SolveStep[] = [];
   const v = eq.variable;
 
+  const ineq = isInequality(relationOf(eq));
+  const noun = ineq ? "inequality" : "equation";
+
   steps.push({
     id: nid(),
     line: lineFromPresentation(eq.presentation, eq),
     explanation: originalExplanation(eq),
-    property: "Given equation",
+    property: ineq ? "Given inequality" : "Given equation",
     isOriginal: true,
   });
 
   if (eq.presentation.form === "distribute") {
     const p = eq.presentation;
     if (strategy === "divide-group" && p.outer !== 0 && eq.rightB % p.outer === 0) {
+      const reverse = maybeReverse(eq, p.outer);
       steps.push({
         id: nid(),
         line: divideGroupLine(eq),
-        explanation: `${operationPhrase("divide", p.outer)} because ${p.outer}(${v} ${p.innerB < 0 ? "−" : "+"} ${Math.abs(p.innerB)}) is the only term on that side. There is nothing else to divide.`,
-        property: "Division Property of Equality",
-        operation: { kind: "divide", value: p.outer },
+        explanation: reverse
+          ? `${operationPhrase("divide", p.outer)} because ${p.outer}(${v} ${p.innerB < 0 ? "−" : "+"} ${Math.abs(p.innerB)}) is the only term on that side. Dividing by a negative reverses the inequality.`
+          : `${operationPhrase("divide", p.outer)} because ${p.outer}(${v} ${p.innerB < 0 ? "−" : "+"} ${Math.abs(p.innerB)}) is the only term on that side. There is nothing else to divide.`,
+        property: propertyFor("divide", isInequality(relationOf(eq))),
+        operation: { kind: "divide", value: p.outer, reverse },
       });
       Object.assign(eq, {
         leftA: 1,
@@ -58,7 +127,9 @@ export function solveEquation(
       steps.push({
         id: nid(),
         line: lineFromLinear(eq),
-        explanation: `The ${p.outer}s cancel. The grouping is gone, and a simpler equation remains.`,
+        explanation: reverse
+          ? `The ${p.outer}s cancel and the inequality sign flips.`
+          : `The ${p.outer}s cancel. The grouping is gone, and a simpler ${noun} remains.`,
         property: "Simplify",
       });
     } else {
@@ -90,20 +161,25 @@ export function solveEquation(
 
   if (eq.presentation.form === "quotient") {
     const p = eq.presentation;
+    const reverse = maybeReverse(eq, p.divisor);
     const next: LinearEq = { ...eq, presentation: { form: "standard" } };
     steps.push({
       id: nid(),
-      line: lineFromPresentation(eq.presentation, eq),
+      line: { ...lineFromPresentation(p, { ...eq, relation: start.relation }), rel: relationOf(eq) },
       annotation: mulAnnotation(p.divisor),
-      explanation: `${operationPhrase("multiply", p.divisor)} to undo the division. The fraction stays on the board until the ${p.divisor}s cancel.`,
-      property: "Multiplication Property of Equality",
-      operation: { kind: "multiply", value: p.divisor },
+      explanation: reverse
+        ? `${operationPhrase("multiply", p.divisor)} to undo the division. Multiplying by a negative reverses the inequality. The fraction stays on the board until the ${p.divisor}s cancel.`
+        : `${operationPhrase("multiply", p.divisor)} to undo the division. The fraction stays on the board until the ${p.divisor}s cancel.`,
+      property: propertyFor("multiply", isInequality(relationOf(eq))),
+      operation: { kind: "multiply", value: p.divisor, reverse },
     });
     Object.assign(eq, next);
     steps.push({
       id: nid(),
       line: lineFromLinear(eq),
-      explanation: `The ${p.divisor}s cancel. What remains is a simpler equation.`,
+      explanation: reverse
+        ? `The ${p.divisor}s cancel and the inequality sign flips.`
+        : `The ${p.divisor}s cancel. What remains is a simpler ${noun}.`,
       property: "Simplify",
     });
   }
@@ -119,10 +195,7 @@ export function solveEquation(
       line: current,
       annotation: addSubAnnotation(kind, mag, v),
       explanation: `${operationPhrase(kind, mag)} on the ${v} terms so the variable lives on one side. ${term(move, v)} on the right cancels.`,
-      property:
-        kind === "add"
-          ? "Addition Property of Equality"
-          : "Subtraction Property of Equality",
+      property: propertyFor(kind, ineq),
       operation: { kind, value: mag, variable: v },
     });
     Object.assign(eq, next);
@@ -138,12 +211,15 @@ export function solveEquation(
     strategy === "divide-all-terms" ? commonTermDivisor(eq) : null;
   if (allDivisor != null) {
     const d = allDivisor;
+    const reverse = maybeReverse(eq, d);
     steps.push({
       id: nid(),
       line: divideAllTermsLine(eq, d),
-      explanation: `${operationPhrase("divide", d)} is acceptable here because every term stays an integer. For most problems, undo the constant first; if you do divide, every term must be divided by ${d < 0 ? `−${Math.abs(d)}` : d}.`,
-      property: "Division Property of Equality",
-      operation: { kind: "divide", value: d },
+      explanation: reverse
+        ? `${operationPhrase("divide", d)} is acceptable here because every term stays an integer. Dividing by a negative reverses the inequality.`
+        : `${operationPhrase("divide", d)} is acceptable here because every term stays an integer. For most problems, undo the constant first; if you do divide, every term must be divided by ${d < 0 ? `−${Math.abs(d)}` : d}.`,
+      property: propertyFor("divide", isInequality(relationOf(eq))),
+      operation: { kind: "divide", value: d, reverse },
     });
     Object.assign(eq, {
       leftA: eq.leftA / d,
@@ -153,7 +229,9 @@ export function solveEquation(
     steps.push({
       id: nid(),
       line: lineFromLinear(eq),
-      explanation: `Each term simplifies. What remains is a simpler equation.`,
+      explanation: reverse
+        ? `Each term simplifies and the inequality sign flips.`
+        : `Each term simplifies. What remains is a simpler ${noun}.`,
       property: "Simplify",
     });
   }
@@ -172,24 +250,22 @@ export function solveEquation(
       id: nid(),
       line: current,
       annotation: addSubAnnotation(kind, mag),
-      explanation: `${operationPhrase(kind, mag)} to undo ${move > 0 ? "adding" : "subtracting"} ${mag} on the left. Inverse operations peel the equation toward ${v}.`,
-      property:
-        kind === "add"
-          ? "Addition Property of Equality"
-          : "Subtraction Property of Equality",
+      explanation: `${operationPhrase(kind, mag)} to undo ${move > 0 ? "adding" : "subtracting"} ${mag} on the left. Inverse operations peel the ${noun} toward ${v}.`,
+      property: propertyFor(kind, ineq),
       operation: { kind, value: mag },
     });
     Object.assign(eq, next);
     steps.push({
       id: nid(),
       line: lineFromLinear(eq),
-      explanation: `The constants cancel. What remains is a simpler equation.`,
+      explanation: `The constants cancel. What remains is a simpler ${noun}.`,
       property: "Simplify",
     });
   }
 
   if (eq.leftA !== 1 && eq.leftA !== 0) {
     const divisor = eq.leftA;
+    const reverse = maybeReverse(eq, divisor);
     const nextRight = eq.rightB / divisor;
     const next: LinearEq = {
       ...eq,
@@ -198,55 +274,93 @@ export function solveEquation(
     };
     steps.push({
       id: nid(),
-      line: divideLine(eq.leftA, eq.rightB, v, divisor),
-      explanation: `${operationPhrase("divide", divisor)} to undo multiplying ${v} by ${divisor}. Both sides are written over ${divisor < 0 ? `−${Math.abs(divisor)}` : divisor} so the coefficient cancels.`,
-      property: "Division Property of Equality",
-      operation: { kind: "divide", value: divisor },
+      line: { ...divideLine(eq.leftA, eq.rightB, v, divisor), rel: relationOf(eq) },
+      explanation: reverse
+        ? `${operationPhrase("divide", divisor)} to undo multiplying ${v} by ${divisor}. Dividing by a negative reverses the inequality.`
+        : `${operationPhrase("divide", divisor)} to undo multiplying ${v} by ${divisor}. Both sides are written over ${divisor < 0 ? `−${Math.abs(divisor)}` : divisor} so the coefficient cancels.`,
+      property: propertyFor("divide", isInequality(relationOf(eq))),
+      operation: { kind: "divide", value: divisor, reverse },
     });
     Object.assign(eq, next);
   }
+
+  const finalRel = relationOf(eq);
+  const solutionText = ineq
+    ? `${v} is isolated. The solution is ${v} ${finalRel} ${solution}. Every number ${relPhrase(finalRel)} ${solution} works.`
+    : `${v} is isolated. The solution is ${v} = ${solution}.`;
 
   const last = steps[steps.length - 1]!;
   if (isIsolatedVarLine(last.line, v)) {
     last.isSolution = true;
     last.property = "Solution";
-    last.explanation = `${v} is isolated. The solution is ${v} = ${solution}.`;
+    last.explanation = solutionText;
+    last.line = { ...last.line, rel: finalRel };
   } else {
     steps.push({
       id: nid(),
       line: {
         left: [{ type: "var", letter: v }],
         right: [{ type: "const", value: solution }],
+        rel: finalRel,
       },
-      explanation: `${v} is isolated. The solution is ${v} = ${solution}.`,
+      explanation: solutionText,
       property: "Solution",
       isSolution: true,
     });
   }
 
-  steps.push({
-    id: nid(),
-    line: substitutionLine(start, solution),
-    explanation: `Substitute ${v} = ${solution} back into the original equation. Both sides match, so the solution checks.`,
-    property: "Substitution · check",
-    operation: { kind: "check" },
-    isCheck: true,
-  });
+  if (ineq) {
+    const sample = testPoint(solution, finalRel);
+    const originalRel = relationOf(start);
+    const checkLine = substitutionLine(start, sample);
+    steps.push({
+      id: nid(),
+      line: { ...checkLine, rel: originalRel },
+      explanation: `A test number from the solution set: try ${v} = ${sample}. Substitute into the original inequality.`,
+      property: "Test a point · check",
+      operation: { kind: "check" },
+      isCheck: true,
+    });
+    const sampleValues = evaluateSides(start, sample);
+    const ok = holds(sampleValues.left, sampleValues.right, originalRel);
+    steps.push({
+      id: nid(),
+      line: {
+        left: [{ type: "const", value: sampleValues.left }],
+        right: [{ type: "const", value: sampleValues.right }],
+        rel: originalRel,
+      },
+      explanation: ok
+        ? `${sampleValues.left} ${originalRel} ${sampleValues.right} is true, so ${sample} belongs in the solution.`
+        : "Check arithmetic — the test number should make the inequality true.",
+      property: "True statement",
+      isCheck: true,
+    });
+  } else {
+    steps.push({
+      id: nid(),
+      line: substitutionLine(start, solution),
+      explanation: `Substitute ${v} = ${solution} back into the original equation. Both sides match, so the solution checks.`,
+      property: "Substitution · check",
+      operation: { kind: "check" },
+      isCheck: true,
+    });
 
-  const values = evaluateSides(start, solution);
-  steps.push({
-    id: nid(),
-    line: {
-      left: [{ type: "const", value: values.left }],
-      right: [{ type: "const", value: values.right }],
-    },
-    explanation:
-      values.left === values.right
-        ? `${values.left} = ${values.right}. The balance holds.`
-        : "Check arithmetic — sides should match.",
-    property: "True statement",
-    isCheck: true,
-  });
+    const values = evaluateSides(start, solution);
+    steps.push({
+      id: nid(),
+      line: {
+        left: [{ type: "const", value: values.left }],
+        right: [{ type: "const", value: values.right }],
+      },
+      explanation:
+        values.left === values.right
+          ? `${values.left} = ${values.right}. The balance holds.`
+          : "Check arithmetic — sides should match.",
+      property: "True statement",
+      isCheck: true,
+    });
+  }
 
   return { steps };
 }
@@ -281,11 +395,17 @@ export function practiceChoices(
 
   const correct: PracticeChoice = {
     id: "ok",
-    label: labelFor(next.operation.kind, next.operation.value, next.operation.variable),
+    label: labelFor(
+      next.operation.kind,
+      next.operation.value,
+      next.operation.variable,
+      next.operation.reverse,
+    ),
     kind: next.operation.kind,
     value: next.operation.value,
     variable: next.operation.variable,
     correct: true,
+    reverse: next.operation.reverse,
   };
 
   const distractors: PracticeChoice[] = [];
@@ -393,6 +513,17 @@ export function practiceChoices(
   }
   if (next.operation.kind === "divide" && next.operation.value != null) {
     const mag = Math.abs(next.operation.value) || 2;
+    if (next.operation.reverse) {
+      push({
+        id: "d-no-flip",
+        label: labelFor("divide", next.operation.value),
+        kind: "divide",
+        value: next.operation.value,
+        correct: false,
+        whyWrong:
+          "You divided, but the coefficient is negative. Dividing by a negative reverses the inequality.",
+      });
+    }
     push({
       id: "d1",
       label: labelFor("subtract", mag),
@@ -529,6 +660,7 @@ function labelFor(
   kind: PracticeChoice["kind"],
   value?: number,
   variable?: string,
+  reverse?: boolean,
 ): string {
   const t = termLabel(value, variable);
   switch (kind) {
@@ -537,9 +669,13 @@ function labelFor(
     case "subtract":
       return `Subtract ${t} from both sides`;
     case "multiply":
-      return `Multiply both sides by ${t}`;
+      return reverse
+        ? `Multiply both sides by ${t} and reverse the inequality`
+        : `Multiply both sides by ${t}`;
     case "divide":
-      return `Divide both sides by ${t}`;
+      return reverse
+        ? `Divide both sides by ${t} and reverse the inequality`
+        : `Divide both sides by ${t}`;
     case "distribute":
       return "Distribute";
     case "combine":
@@ -561,6 +697,7 @@ function termLabel(value?: number, variable?: string): string {
 }
 
 function originalExplanation(eq: LinearEq): string {
+  const ineq = isInequality(relationOf(eq));
   switch (eq.presentation.form) {
     case "distribute":
       return `A grouped expression sits on the left. Expand with the distributive property before isolating ${eq.variable}.`;
@@ -573,12 +710,16 @@ function originalExplanation(eq: LinearEq): string {
         return `${eq.variable} appears on both sides. Collect the variable terms, then undo constants and coefficients.`;
       }
       if (eq.leftA !== 1 && eq.leftB !== 0) {
-        return `This is a two-step equation: undo the constant, then undo the coefficient of ${eq.variable}.`;
+        return ineq
+          ? `This is a two-step inequality: undo the constant, then undo the coefficient of ${eq.variable}. If you divide by a negative, reverse the inequality.`
+          : `This is a two-step equation: undo the constant, then undo the coefficient of ${eq.variable}.`;
       }
       if (eq.leftB !== 0) {
         return `A constant is added to ${eq.variable}. Use the inverse operation on both sides.`;
       }
-      return `${eq.variable} is multiplied by a coefficient. Divide both sides to isolate it.`;
+      return ineq
+        ? `${eq.variable} is multiplied by a coefficient. Divide both sides to isolate it. If that coefficient is negative, reverse the inequality.`
+        : `${eq.variable} is multiplied by a coefficient. Divide both sides to isolate it.`;
   }
 }
 

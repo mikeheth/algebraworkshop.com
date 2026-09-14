@@ -1,7 +1,7 @@
-import { solveEquation } from "./solve";
-import { maybeNeg, pick, randIntNonZero } from "./random";
-import { makeWordProblem } from "./word-problems";
-import type { LinearEq, Presentation, Problem, Settings } from "./types";
+import { solveEquation } from "./solve.ts";
+import { maybeNeg, pick, randIntNonZero } from "./random.ts";
+import { makeWordProblem } from "./word-problems.ts";
+import type { Board, LinearEq, Presentation, Problem, Relation, Settings } from "./types.ts";
 
 const MAX_TRIES = 80;
 
@@ -11,29 +11,61 @@ type Built = {
   structureLabel: string;
 };
 
-export function generateProblem(settings: Settings): Problem {
+export function generateProblem(
+  settings: Settings,
+  board: Board = "equations",
+): Problem {
   let lastError = "Could not generate a clean integer problem.";
   for (let i = 0; i < MAX_TRIES; i++) {
     try {
       const built = buildEquation(settings);
+      const eq = withRelation(maybeFlipFriendly(built, settings, board).eq, board);
       if (settings.wordProblem && built.solution <= 0) continue;
-      const solved = solveEquation(built.eq, built.solution);
+      const solved = solveEquation(eq, built.solution);
       if (solved.steps.length < 2) continue;
       const word = settings.wordProblem
-        ? makeWordProblem(built.eq, built.solution, built.structureLabel)
+        ? makeWordProblem(eq, built.solution, built.structureLabel)
         : undefined;
+      const label =
+        board === "inequalities"
+          ? built.structureLabel.replace("linear", "inequality") +
+            (eq.relation && eq.relation !== "=" ? ` · ${eq.relation}` : "")
+          : built.structureLabel;
       return {
-        eq: built.eq,
+        eq,
         solution: built.solution,
         steps: solved.steps,
         word,
-        structureLabel: built.structureLabel,
+        structureLabel: label,
       };
     } catch (err) {
       lastError = err instanceof Error ? err.message : lastError;
     }
   }
   throw new Error(lastError);
+}
+
+function withRelation(eq: LinearEq, board: Board): LinearEq {
+  if (board !== "inequalities") return { ...eq, relation: "=" };
+  const rel = pick(["<", ">", "≤", "≥"] as Relation[]);
+  return { ...eq, relation: rel };
+}
+
+/** Bias inequalities toward a negative coefficient so the sign-flip shows up in class. */
+function maybeFlipFriendly(built: Built, s: Settings, board: Board): Built {
+  if (board !== "inequalities" || !s.negatives) return built;
+  if (built.eq.presentation.form !== "standard") return built;
+  if (Math.abs(built.eq.leftA) <= 1) return built;
+  if (Math.random() >= 0.45) return built;
+  const a = -Math.abs(built.eq.leftA);
+  return {
+    ...built,
+    eq: {
+      ...built.eq,
+      leftA: a,
+      rightB: a * built.solution + built.eq.leftB - built.eq.rightA * built.solution,
+    },
+  };
 }
 
 function buildEquation(s: Settings): Built {
@@ -205,5 +237,5 @@ function linear(
   rightB: number,
   presentation: Presentation = { form: "standard" },
 ): LinearEq {
-  return { variable, leftA, leftB, rightA, rightB, presentation };
+  return { variable, leftA, leftB, rightA, rightB, presentation, relation: "=" };
 }

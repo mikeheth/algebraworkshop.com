@@ -8,8 +8,10 @@ import {
   Pause,
   Play,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EquationView } from "@/components/solver/colored-math";
+import { NumberLine } from "@/components/solver/number-line";
 import { ControlsPanel } from "@/components/solver/controls";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,9 @@ import { equationPlain } from "@/lib/algebra/format";
 import { nextPracticeIndex, practiceChoices, solveByDividingAllTerms, solveByDividingGroup } from "@/lib/algebra/solve";
 import {
   DEFAULT_SETTINGS,
+  DEFAULT_INEQ_SETTINGS,
   PLAY_SPEEDS,
+  type Board,
   type PlaySpeed,
   type PracticeChoice,
   type Problem,
@@ -27,19 +31,24 @@ import {
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "stepboard-settings";
+const INEQ_STORAGE_KEY = "inequalities-settings";
 
-function loadSettings(): Settings {
+function loadSettings(board: Board): Settings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
+    const raw = localStorage.getItem(
+      board === "inequalities" ? INEQ_STORAGE_KEY : STORAGE_KEY,
+    );
+    if (!raw) {
+      return board === "inequalities" ? DEFAULT_INEQ_SETTINGS : DEFAULT_SETTINGS;
+    }
     return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
   } catch {
     return DEFAULT_SETTINGS;
   }
 }
 
-export function StepboardApp() {
+export function StepboardApp({ board = "equations" }: { board?: Board }) {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [hydrated, setHydrated] = useState(false);
   const [problem, setProblem] = useState<Problem | null>(null);
@@ -56,7 +65,7 @@ export function StepboardApp() {
   settingsRef.current = settings;
 
   useEffect(() => {
-    const loaded = loadSettings();
+    const loaded = loadSettings(board);
     setSettings(loaded);
     setHydrated(true);
     try {
@@ -65,11 +74,11 @@ export function StepboardApp() {
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [board]);
 
   const rebuild = useCallback((s: Settings) => {
     try {
-      const next = generateProblem(s);
+      const next = generateProblem(s, board);
       setProblem(next);
       setError(null);
       setVisible(1);
@@ -84,7 +93,7 @@ export function StepboardApp() {
       );
       setProblem(null);
     }
-  }, []);
+  }, [board]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -93,8 +102,11 @@ export function StepboardApp() {
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  }, [settings, hydrated]);
+    localStorage.setItem(
+      board === "inequalities" ? INEQ_STORAGE_KEY : STORAGE_KEY,
+      JSON.stringify(settings),
+    );
+  }, [settings, hydrated, board]);
 
   const patch = (partial: Partial<Settings>) => {
     const next = { ...settings, ...partial };
@@ -196,7 +208,11 @@ export function StepboardApp() {
       setVisible(jump);
       setFeedback({
         ok: true,
-        text: "That's the inverse. The equation stays balanced.",
+        text: board === "inequalities"
+          ? choice.reverse
+            ? "That's the inverse. Multiplying or dividing by a negative reverses the inequality."
+            : "That's the inverse. The inequality stays true."
+          : "That's the inverse. The equation stays balanced.",
       });
     } else {
       setFeedback({
@@ -208,12 +224,12 @@ export function StepboardApp() {
 
   const shown = steps.slice(0, visible);
 
-  const board = useMemo(() => {
-    const rows: typeof shown = [];
+  const rows = useMemo(() => {
+    const next: typeof shown = [];
     for (const step of shown) {
-      const prev = rows[rows.length - 1];
+      const prev = next[next.length - 1];
       if (prev && equationPlain(prev.line) === equationPlain(step.line)) {
-        rows[rows.length - 1] = {
+        next[next.length - 1] = {
           ...prev,
           annotation: step.annotation ?? prev.annotation,
           explanation: step.explanation,
@@ -224,9 +240,9 @@ export function StepboardApp() {
         };
         continue;
       }
-      rows.push(step);
+      next.push(step);
     }
-    return rows;
+    return next;
   }, [shown]);
 
   return (
@@ -234,13 +250,18 @@ export function StepboardApp() {
       <header className="border-b border-line/80">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
           <p className="text-xs font-medium tracking-[0.22em] text-muted uppercase">
-            Algebra 1
+            <Link to="/" className="hover:text-ink-soft">
+              Algebra Workshop
+            </Link>
+            {board === "inequalities" ? " · Plus" : " · Algebra 1"}
           </p>
           <h1 className="font-display text-4xl tracking-tight text-ink sm:text-5xl">
-            Stepboard
+            {board === "inequalities" ? "Inequalities" : "Stepboard"}
           </h1>
           <p className="mt-1 max-w-md text-sm text-ink-soft">
-            One-, two-, and three-step equations, worked line by line.
+            {board === "inequalities"
+              ? "One-, two-, and three-step inequalities, worked line by line. Reverse the sign when you multiply or divide by a negative."
+              : "One-, two-, and three-step equations, worked line by line."}
           </p>
         </div>
       </header>
@@ -251,9 +272,12 @@ export function StepboardApp() {
         <ControlsPanel
           settings={settings}
           onChange={patch}
+          noun={board === "inequalities" ? "inequality" : "equation"}
           onReset={() => {
-            setSettings(DEFAULT_SETTINGS);
-            rebuild(DEFAULT_SETTINGS);
+            const defaults =
+              board === "inequalities" ? DEFAULT_INEQ_SETTINGS : DEFAULT_SETTINGS;
+            setSettings(defaults);
+            rebuild(defaults);
           }}
           onNew={onNew}
         />
@@ -284,8 +308,7 @@ export function StepboardApp() {
                 {problem.word.letStatement}
               </p>
               <p className="mt-3 text-sm text-ink-soft">
-                Every number in the equation is in the story. Write the equation,
-                then reveal it to compare.
+                Every number in the {board === "inequalities" ? "inequality" : "equation"} is in the story. Write it, then reveal to compare.
               </p>
               <div className="mt-4">
                 <Button
@@ -318,10 +341,10 @@ export function StepboardApp() {
 
               {showEquation || !problem?.word ? (
                 <div className="space-y-5 pl-4 sm:pl-6">
-                  {board.map((step, i) => {
-                    const active = i === board.length - 1;
+                  {rows.map((step, i) => {
+                    const active = i === rows.length - 1;
                     const firstCheck =
-                      !!step.isCheck && !board.slice(0, i).some((s) => s.isCheck);
+                      !!step.isCheck && !rows.slice(0, i).some((s) => s.isCheck);
                     return (
                       <div
                         key={step.id}
@@ -338,6 +361,13 @@ export function StepboardApp() {
                           size={step.isOriginal || step.isSolution ? "xl" : "lg"}
                           className={cn(!active && "opacity-70")}
                         />
+                        {active && step.isSolution && board === "inequalities" && step.line.rel && step.line.rel !== "=" ? (
+                          <NumberLine
+                            value={problem?.solution ?? 0}
+                            rel={step.line.rel}
+                            variable={problem?.eq.variable ?? "x"}
+                          />
+                        ) : null}
                         {active ? (
                           <div className="mt-3 max-w-xl">
                             <p className="text-xs font-medium tracking-[0.16em] text-muted uppercase">
@@ -354,7 +384,7 @@ export function StepboardApp() {
                 </div>
               ) : (
                 <p className="pl-6 text-ink-soft">
-                  Translate the story into an equation, then reveal it to compare.
+                  Translate the story into {board === "inequalities" ? "an inequality" : "an equation"}, then reveal it to compare.
                 </p>
               )}
             </div>
@@ -366,7 +396,8 @@ export function StepboardApp() {
                 What is the next move?
               </h3>
               <p className="mb-4 text-sm text-ink-soft">
-                Pick the inverse operation that keeps both sides equal.
+                Pick the inverse operation that keeps both sides{" "}
+                {board === "inequalities" ? "true" : "equal"}.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {choices.map((c) => (

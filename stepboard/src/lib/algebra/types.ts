@@ -6,6 +6,10 @@ export type SolveMode = "watch" | "practice";
 
 export type PlaySpeed = "slow" | "classroom" | "brisk";
 
+export type Board = "equations" | "inequalities";
+
+export type Relation = "=" | "<" | ">" | "≤" | "≥";
+
 export type Settings = {
   stepCount: StepCount;
   difficulty: Difficulty;
@@ -29,6 +33,7 @@ export type LinearEq = {
   rightA: number;
   rightB: number;
   presentation: Presentation;
+  relation?: Relation;
 };
 
 export type Presentation =
@@ -48,6 +53,7 @@ export type MathToken =
 export type EquationLine = {
   left: MathToken[];
   right: MathToken[];
+  rel?: Relation;
 };
 
 export type OperationKind =
@@ -65,7 +71,12 @@ export type SolveStep = {
   annotation?: EquationLine;
   explanation: string;
   property: string;
-  operation?: { kind: OperationKind; value?: number; variable?: string };
+  operation?: {
+    kind: OperationKind;
+    value?: number;
+    variable?: string;
+    reverse?: boolean;
+  };
   isOriginal?: boolean;
   isSolution?: boolean;
   isCheck?: boolean;
@@ -80,6 +91,7 @@ export type PracticeChoice = {
   correct: boolean;
   whyWrong?: string;
   apply?: "divide-group" | "divide-all-terms";
+  reverse?: boolean;
 };
 
 export type WordProblem = {
@@ -166,4 +178,34 @@ export const DIFFICULTY_PRESETS: Record<
   },
 };
 
+export const DEFAULT_INEQ_SETTINGS: Settings = {
+  ...DEFAULT_SETTINGS,
+  ...DIFFICULTY_PRESETS.medium,
+  difficulty: "medium",
+  negatives: true,
+};
+
 export const VARIABLE_LETTERS = ["x", "n", "y", "k", "m"] as const;
+
+export function isInequality(rel?: Relation): boolean {
+  return rel != null && rel !== "=";
+}
+
+export function flipRelation(rel: Relation): Relation {
+  switch (rel) {
+    case "<":
+      return ">";
+    case ">":
+      return "<";
+    case "≤":
+      return "≥";
+    case "≥":
+      return "≤";
+    default:
+      return rel;
+  }
+}
+
+export function relationOf(eq: LinearEq): Relation {
+  return eq.relation ?? "=";
+}
