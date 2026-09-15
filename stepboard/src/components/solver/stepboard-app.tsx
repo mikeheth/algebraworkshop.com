@@ -112,6 +112,12 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
   const patch = (partial: Partial<Settings>) => {
     const next = { ...settings, ...partial };
     setSettings(next);
+    if (board === "equations" && partial.wordProblem === true) {
+      rebuild(next);
+    } else if (board === "equations" && partial.wordProblem === false) {
+      setProblem((p) => (p ? { ...p, word: undefined } : p));
+      setShowEquation(true);
+    }
     if (partial.stepCount !== undefined && partial.stepCount !== settings.stepCount) {
       rebuild(next);
     }
