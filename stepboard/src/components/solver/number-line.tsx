@@ -1,5 +1,7 @@
 import type { Relation } from "@/lib/algebra/types";
 
+const DENSE_SPAN = 12;
+
 export function NumberLine({
   value,
   rel,
@@ -28,8 +30,7 @@ export function NumberLine({
     if (max - min < 6) max = min + 6;
   }
 
-  const ticks: number[] = [];
-  for (let n = min; n <= max; n++) ticks.push(n);
+  const ticks = tickMarks(min, max, value, leftEnd);
   const px = (n: number) => ((n - min) / (max - min)) * 304 + 8;
 
   const shadeX1 = leftward ? px(leftEnd ?? min) : px(value);
@@ -128,4 +129,20 @@ export function NumberLine({
     }
     return `${end}. Shade ${leftward ? "left" : "right"} for ${variable} ${rel} ${value}.`;
   }
+}
+
+/** Label every integer on a short line; on a long span, only the bound(s). */
+export function tickMarks(
+  min: number,
+  max: number,
+  value: number,
+  leftEnd: number | null,
+): number[] {
+  if (max - min <= DENSE_SPAN) {
+    const ticks: number[] = [];
+    for (let n = min; n <= max; n++) ticks.push(n);
+    return ticks;
+  }
+  const marks = leftEnd == null ? [value] : [leftEnd, value];
+  return [...new Set(marks)].sort((a, b) => a - b);
 }
