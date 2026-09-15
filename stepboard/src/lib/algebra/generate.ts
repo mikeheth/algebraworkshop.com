@@ -18,9 +18,9 @@ export function generateProblem(
   let lastError = "Could not generate a clean integer problem.";
   for (let i = 0; i < MAX_TRIES; i++) {
     try {
-      const built = buildEquation(settings);
+      const built = buildEquation(settings, board);
       const eq = withRelation(maybeFlipFriendly(built, settings, board).eq, board);
-      if (settings.wordProblem && built.solution <= 0) continue;
+      if (settings.wordProblem && built.solution <= 0 && board !== "inequalities") continue;
       const solved = solveEquation(eq, built.solution);
       if (solved.steps.length < 2) continue;
       const word = settings.wordProblem
@@ -68,10 +68,12 @@ function maybeFlipFriendly(built: Built, s: Settings, board: Board): Built {
   };
 }
 
-function buildEquation(s: Settings): Built {
+function buildEquation(s: Settings, board: Board = "equations"): Built {
   const v = s.variable;
-  // Word problems ask "how many posters/tickets?" — that count cannot be negative.
-  const allowNegUnknown = s.negatives && !s.wordProblem;
+  // Equation word problems ask "how many posters?" — that count cannot be negative.
+  // Inequality stories may use a signed unknown (overnight low, a number).
+  const allowNegUnknown =
+    s.negatives && (board === "inequalities" || !s.wordProblem);
   const solMin = allowNegUnknown ? -Math.min(12, Math.max(3, s.constMax)) : 1;
   const solMax = Math.min(16, Math.max(solMin + 2, s.constMax));
   const x = randIntNonZero(solMin, solMax);

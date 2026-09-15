@@ -226,11 +226,12 @@ describe("algebra generator", () => {
       presentation: { form: "standard" },
     };
     const word = makeWordProblem(eq, -5);
-    assert.match(word.story, /thinking of a number/i);
-    assert.match(word.story, /multiply it by 3/i);
-    assert.match(word.story, /add 6/i);
+    assert.doesNotMatch(word.story, /points? in each round/i);
+    assert.doesNotMatch(`${word.story} ${word.question}`, /month|ticket|poster/i);
+    assert.match(word.story, /3/);
+    assert.match(word.story, /6/);
     assert.match(word.story, /−9|-9/);
-    assert.doesNotMatch(word.story, /same .+ operations/i);
+    assert.equal(word.nonNegative, false);
     assertStoryMatchesEquation(eq, word.story, word.question);
   });
 
@@ -620,7 +621,7 @@ describe("inequalities", () => {
     }
   });
 
-  it("makes a score bonus a one-time first-round add-on", () => {
+  it("does not tell a score story when the coefficient is negative", () => {
     const eq: LinearEq = {
       variable: "x",
       leftA: -7,
@@ -630,19 +631,24 @@ describe("inequalities", () => {
       presentation: { form: "standard" },
       relation: "≥",
     };
-    const word = makeWordProblem(eq, 13);
-    assert.match(word.story, /loses 7 points in each round/i);
-    assert.match(
-      word.story,
-      /starts the first round with a one-time 6-point bonus/i,
-    );
-    assert.doesNotMatch(word.story, /gains 6 bonus points/i);
-    assert.equal(word.nonNegative, true);
-    assert.equal(word.countNoun, "rounds");
-    assertStoryMatchesEquation(eq, word.story, word.question);
+    const seen = { dive: 0, overnight: 0, number: 0, other: 0 };
+    for (let i = 0; i < 50; i++) {
+      const word = makeWordProblem(eq, 13);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      assert.doesNotMatch(word.story, /bonus points/i);
+      assert.doesNotMatch(word.story, /the score is then/i);
+      assertStoryMatchesEquation(eq, word.story, word.question);
+      if (/dives|sea level|elevation/i.test(word.story)) seen.dive += 1;
+      else if (/overnight low/i.test(word.story)) seen.overnight += 1;
+      else if (/thinking of a number/i.test(word.story)) seen.number += 1;
+      else seen.other += 1;
+    }
+    assert.ok(seen.dive > 0, "expected some dive stories");
+    assert.ok(seen.number > 0, "expected some number stories");
+    assert.equal(seen.overnight, 0, "overnight-low needs a positive coefficient");
   });
 
-  it("puts a left-hand limit at zero when rounds cannot be negative", () => {
+  it("zero-floors discrete time stories and leaves number stories unbounded", () => {
     const eq: LinearEq = {
       variable: "x",
       leftA: -2,
@@ -652,15 +658,102 @@ describe("inequalities", () => {
       presentation: { form: "standard" },
       relation: "≥",
     };
-    const word = makeWordProblem(eq, 3);
-    assert.equal(word.nonNegative, true);
-    const { steps } = solveEquation(eq, 3);
-    const sol = steps.find((s) => s.isSolution);
-    assert.ok(sol);
-    assert.equal(sol.line.rel, "≤");
-    assert.doesNotMatch(sol.explanation, /can't be negative/);
-    const note = countDomainNote(sol.line.rel, 3, "x", word.countNoun ?? "rounds");
-    assert.equal(note, "Rounds can't be negative, so 0 ≤ x ≤ 3.");
+    let discrete = 0;
+    let signed = 0;
+    for (let i = 0; i < 40; i++) {
+      const word = makeWordProblem(eq, 3);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      const { steps } = solveEquation(eq, 3);
+      const sol = steps.find((s) => s.isSolution);
+      assert.ok(sol);
+      assert.equal(sol.line.rel, "≤");
+      assert.doesNotMatch(sol.explanation, /can't be negative/);
+      if (word.nonNegative && word.countNoun) {
+        discrete += 1;
+        const note = countDomainNote(
+          sol.line.rel,
+          3,
+          "x",
+          word.countNoun,
+        );
+        assert.match(note ?? "", /can't be negative/);
+      } else {
+        signed += 1;
+        assert.equal(word.nonNegative, false);
+      }
+    }
+    assert.ok(discrete > 0, "expected some discrete time stories");
+    assert.ok(signed > 0, "expected some signed number/overnight stories");
+  });
+
+  it("writes a twice-the-sum number story", () => {
+    const eq: LinearEq = {
+      variable: "n",
+      leftA: 2,
+      leftB: 16,
+      rightA: 0,
+      rightB: 4,
+      presentation: { form: "distribute", outer: 2, innerB: 8 },
+      relation: "≤",
+    };
+    let hit = 0;
+    for (let i = 0; i < 30; i++) {
+      const word = makeWordProblem(eq, -6);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      if (/twice the sum of the number and 8/i.test(word.story)) {
+        hit += 1;
+        assert.equal(word.nonNegative, false);
+      }
+      assertStoryMatchesEquation(eq, word.story, word.question);
+    }
+    assert.ok(hit > 0, "expected a twice-the-sum story");
+  });
+
+  it("writes an overnight-low story for a signed two-step", () => {
+    const eq: LinearEq = {
+      variable: "n",
+      leftA: 2,
+      leftB: -4,
+      rightA: 0,
+      rightB: -10,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    let hit = 0;
+    for (let i = 0; i < 40; i++) {
+      const word = makeWordProblem(eq, -3);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      if (/overnight low/i.test(word.story) && /colder than/i.test(word.story)) {
+        hit += 1;
+        assert.equal(word.nonNegative, false);
+      }
+      assertStoryMatchesEquation(eq, word.story, word.question);
+    }
+    assert.ok(hit > 0, "expected an overnight-low story");
+  });
+
+  it("writes a dive story for a negative rate", () => {
+    const eq: LinearEq = {
+      variable: "d",
+      leftA: -8,
+      leftB: 0,
+      rightA: 0,
+      rightB: -40,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    let hit = 0;
+    for (let i = 0; i < 40; i++) {
+      const word = makeWordProblem(eq, 5);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      if (/dives 8 feet each minute/i.test(word.story)) {
+        hit += 1;
+        assert.equal(word.nonNegative, true);
+        assert.equal(word.countNoun, "minutes");
+      }
+      assertStoryMatchesEquation(eq, word.story, word.question);
+    }
+    assert.ok(hit > 0, "expected a dive story");
   });
 
   it("does not constrain the graph when a negative unknown makes sense", () => {
@@ -674,7 +767,6 @@ describe("inequalities", () => {
       relation: "<",
     };
     const word = makeWordProblem(eq, -5);
-    assert.match(word.story, /thinking of a number/i);
     assert.equal(word.nonNegative, false);
     assert.equal(word.countNoun, undefined);
   });

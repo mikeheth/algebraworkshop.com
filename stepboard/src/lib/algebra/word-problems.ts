@@ -70,7 +70,7 @@ const ITEMS: Item[] = [
 ];
 
 const COUNT_NOUN =
-  /ticket|notebook|smoothie|poster|muffin|round|month|\bbox(?:es)?\b/i;
+  /ticket|notebook|smoothie|poster|muffin|round|month|\bbox(?:es)?\b|people|person|hour|minute|week/i;
 
 /**
  * Build a story a student can translate into `eq` without seeing the algebra.
@@ -110,8 +110,13 @@ export function makeWordProblem(
 }
 
 function buildStory(eq: LinearEq, solution: number, ctx: StoryCtx): WordProblem {
-  // Countable things (posters, months, rounds) cannot be a negative unknown.
-  if (solution <= 0) return numberMachine(eq, ctx);
+  // Countable things (posters, months, people) cannot be a negative unknown.
+  if (solution <= 0) {
+    return pick([
+      () => overnightStory(eq, ctx),
+      () => numberCompareStory(eq, ctx),
+    ])();
+  }
 
   const p = eq.presentation;
   if (p.form === "distribute") return distributeStory(eq, p, ctx);
@@ -156,15 +161,30 @@ function wp(
 
 /**
  * Zero-floor the graph only for countable story units (objects, people,
- * rounds, months). Signed quantities — money, "a number", scores as
- * values — may be negative, so they stay unbounded.
+ * hours, months). Signed quantities — money, "a number", temperature,
+ * elevation — may be negative, so they stay unbounded.
  */
 export function countDomain(unknown: string): {
   nonNegative: boolean;
   countNoun?: string;
 } {
-  if (/dollar|price|unknown number/i.test(unknown)) {
+  if (/dollar|price|unknown number|overnight|temperature|elevation/i.test(unknown)) {
     return { nonNegative: false };
+  }
+  if (/\bminutes?\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "minutes" };
+  }
+  if (/\bhours?\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "hours" };
+  }
+  if (/\bweeks?\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "weeks" };
+  }
+  if (/\bpeople\b|\bperson\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "people" };
+  }
+  if (/\bboxes\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "boxes" };
   }
   if (/\brounds?\b/i.test(unknown)) {
     return { nonNegative: true, countNoun: "rounds" };
@@ -218,6 +238,326 @@ function moneyMove(amount: number, person: string): string {
   return `gave ${dollars(amount)} to ${person}`;
 }
 
+function compareVerb(rel: Relation): string {
+  switch (rel) {
+    case "≤":
+      return "is at most";
+    case "<":
+      return "is less than";
+    case "≥":
+      return "is at least";
+    case ">":
+      return "is more than";
+    default:
+      return "equals";
+  }
+}
+
+function timesANumber(a: number): string {
+  if (a === 1) return "a number";
+  if (a === -1) return "the opposite of a number";
+  if (a === 2) return "twice a number";
+  if (a === -2) return "the opposite of twice a number";
+  return `${signedNum(a)} times a number`;
+}
+
+function numberCompareStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const p = eq.presentation;
+  if (p.form === "distribute") {
+    return distributeNumberStory(p, eq.rightB, ctx);
+  }
+  if (p.form === "combine") {
+    return numberMachine(eq, ctx);
+  }
+  if (p.form === "quotient") {
+    return numberMachine(eq, ctx);
+  }
+  if (eq.rightA !== 0) return bothSidesNumberStory(eq, ctx);
+  return wp(
+    ctx,
+    `${ctx.name} is thinking of a number. ${cap(phraseTimes(eq.leftA, eq.leftB))} ${compareVerb(ctx.rel)} ${signedNum(eq.rightB)}.`,
+    ctx.rel === "="
+      ? `What number is ${ctx.name} thinking of?`
+      : `Which numbers could ${ctx.name} be thinking of?`,
+    "the unknown number",
+  );
+}
+
+function distributeNumberStory(
+  p: Extract<Presentation, { form: "distribute" }>,
+  total: number,
+  ctx: StoryCtx,
+): WordProblem {
+  const sum =
+    p.innerB > 0
+      ? `the sum of the number and ${p.innerB}`
+      : p.innerB < 0
+        ? `the number minus ${Math.abs(p.innerB)}`
+        : "the number";
+  const times =
+    p.outer === 2
+      ? `twice ${sum}`
+      : p.outer === -2
+        ? `the opposite of twice ${sum}`
+        : p.outer === 1
+          ? sum
+          : `${signedNum(p.outer)} times ${sum}`;
+  return wp(
+    ctx,
+    `${ctx.name} is thinking of a number. ${cap(times)} ${compareVerb(ctx.rel)} ${signedNum(total)}.`,
+    ctx.rel === "="
+      ? `What number is ${ctx.name} thinking of?`
+      : `Which numbers could ${ctx.name} be thinking of?`,
+    "the unknown number",
+  );
+}
+
+function overnightStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const p = eq.presentation;
+  if (p.form === "distribute" || p.form === "combine" || p.form === "quotient" || eq.rightA !== 0) {
+    return numberCompareStory(eq, ctx);
+  }
+  const a = eq.leftA;
+  const b = eq.leftB;
+  if (a <= 0) return numberCompareStory(eq, ctx);
+  const low =
+    a > 0 && b < 0
+      ? `${Math.abs(b)} degrees less than ${timesANumber(a)}`
+      : a > 0 && b > 0
+        ? `${b} degrees more than ${timesANumber(a)}`
+        : a > 0 && b === 0
+          ? timesANumber(a)
+          : phraseTimes(a, b).replace(/\bthe number\b/g, "a number");
+  return wp(
+    ctx,
+    `The overnight low was ${low}, and it was ${overnightBound(eq.rightB, ctx.rel)}.`,
+    "Which numbers could that be?",
+    "the unknown number",
+  );
+}
+
+function overnightBound(n: number, rel: Relation): string {
+  const t = `${signedNum(n)} degrees`;
+  switch (rel) {
+    case "<":
+      return `colder than ${t}`;
+    case "≤":
+      return `at most ${t}`;
+    case ">":
+      return `warmer than ${t}`;
+    case "≥":
+      return `at least ${t}`;
+    default:
+      return t;
+  }
+}
+
+function elevationAt(n: number): string {
+  if (n === 0) return "sea level";
+  if (n > 0) return `${n} feet above sea level`;
+  return `${Math.abs(n)} feet below sea level`;
+}
+
+function elevationCompare(n: number, rel: Relation): string {
+  const at = elevationAt(n);
+  switch (rel) {
+    case "<":
+      return `less than ${at}`;
+    case "≤":
+      return `at most ${at}`;
+    case ">":
+      return `more than ${at}`;
+    case "≥":
+      return `at least ${at}`;
+    default:
+      return at;
+  }
+}
+
+function diveStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const b = eq.leftB;
+  const start =
+    b === 0
+      ? "A sub starts at sea level"
+      : b > 0
+        ? `A sub starts at ${b} feet above sea level`
+        : `A sub starts at ${Math.abs(b)} feet below sea level`;
+  return wp(
+    ctx,
+    `${start} and dives ${a} feet each minute. After some minutes its elevation is ${elevationCompare(eq.rightB, ctx.rel)}.`,
+    ctx.rel === "="
+      ? "How many minutes did the sub dive?"
+      : "How many minutes could that take?",
+    "the number of minutes",
+  );
+}
+
+function coolingStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const b = eq.leftB;
+  const R = eq.rightB;
+  const must = tempMust(R, ctx.rel);
+  return wp(
+    ctx,
+    `The rink is ${signedNum(b)} degrees and ${must}. A cooler drops the temperature ${a} degrees each hour.`,
+    ctx.rel === "="
+      ? "How many hours did the cooler run?"
+      : "How many hours could that take?",
+    "the number of hours",
+  );
+}
+
+function tempMust(n: number, rel: Relation): string {
+  const t = `${signedNum(n)} degrees`;
+  switch (rel) {
+    case "<":
+      return `must stay below ${t}`;
+    case "≤":
+      return `must stay at most ${t}`;
+    case ">":
+      return `must stay above ${t}`;
+    case "≥":
+      return `must stay at least ${t}`;
+    default:
+      return `reaches ${t}`;
+  }
+}
+
+function remainingBillStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const b = eq.leftB;
+  const R = eq.rightB;
+  const keep = leftoverMoney(ctx.name, R, ctx.rel);
+  return wp(
+    ctx,
+    `${ctx.name} has ${dollars(b)} in an account. A club costs ${dollars(a)} each month. After some months, ${keep}.`,
+    ctx.rel === "="
+      ? `How many months did ${ctx.name} pay?`
+      : `How many months could ${ctx.name} pay?`,
+    "the number of months",
+  );
+}
+
+function negativeCoefStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const b = eq.leftB;
+  const total = eq.rightB;
+  const options: Array<() => WordProblem> = [
+    () => diveStory(eq, ctx),
+    () => numberCompareStory(eq, ctx),
+  ];
+  if (b > 0 && total >= 0) options.push(() => remainingBillStory(eq, ctx));
+  if (b !== 0) options.push(() => coolingStory(eq, ctx));
+  return pick(options)();
+}
+
+function capacityStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const R = eq.rightB;
+  const hold = weightHold(R, ctx.rel);
+  if (Math.random() < 0.5) {
+    return wp(
+      ctx,
+      `The elevator sign says the car can hold ${hold}. Each person weighs ${a} pounds.`,
+      ctx.rel === "="
+        ? "How many people rode?"
+        : "How many people could ride?",
+      "the number of people",
+    );
+  }
+  return wp(
+    ctx,
+    `A pallet can safely hold ${hold}. Each box weighs ${a} pounds.`,
+    ctx.rel === "="
+      ? "How many boxes were loaded?"
+      : "How many boxes could it hold?",
+    "the number of boxes",
+  );
+}
+
+function weightHold(n: number, rel: Relation): string {
+  switch (rel) {
+    case "≤":
+      return `at most ${n} pounds`;
+    case "<":
+      return `less than ${n} pounds`;
+    case "≥":
+      return `at least ${n} pounds`;
+    case ">":
+      return `more than ${n} pounds`;
+    default:
+      return `${n} pounds`;
+  }
+}
+
+function fundraisingStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const R = eq.rightB;
+  return wp(
+    ctx,
+    `The troop needs to raise ${raiseBound(R, ctx.rel)}. Boxes of cookies sell for ${dollars(a)} each.`,
+    ctx.rel === "="
+      ? "How many boxes did they sell?"
+      : "How many boxes could they have sold?",
+    "the number of boxes",
+  );
+}
+
+function raiseBound(n: number, rel: Relation): string {
+  switch (rel) {
+    case "≤":
+      return `at most ${dollars(n)}`;
+    case "<":
+      return `less than ${dollars(n)}`;
+    case "≥":
+      return `at least ${dollars(n)}`;
+    case ">":
+      return `more than ${dollars(n)}`;
+    default:
+      return dollars(n);
+  }
+}
+
+function averageBound(n: number, rel: Relation): string {
+  switch (rel) {
+    case "≤":
+      return `at most ${n}`;
+    case "<":
+      return `less than ${n}`;
+    case "≥":
+      return `at least ${n}`;
+    case ">":
+      return `more than ${n}`;
+    default:
+      return String(n);
+  }
+}
+
+function rateToGoalStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const a = Math.abs(eq.leftA);
+  const b = eq.leftB;
+  const R = eq.rightB;
+  const { name, item, rel } = ctx;
+  const want =
+    rel === ">"
+      ? `wants more than ${R} ${item.plural}`
+      : rel === "≥"
+        ? `wants at least ${R} ${item.plural}`
+        : rel === "<"
+          ? `wants fewer than ${R} ${item.plural}`
+          : rel === "≤"
+            ? `wants at most ${R} ${item.plural}`
+            : `ends with ${R} ${item.plural}`;
+  return wp(
+    ctx,
+    `${name} already has ${b} ${item.plural}. Each week ${name} makes ${a} more. ${name} ${want}.`,
+    rel === "="
+      ? `How many weeks did that take?`
+      : `How many weeks would that take?`,
+    "the number of weeks",
+  );
+}
+
 /** Closing money sentence. For inequalities the right-hand amount is a budget, not a tally. */
 function resultMoney(name: string, n: number, rel: Relation): string {
   if (n < 0) return negativeBalance(name, n);
@@ -234,18 +574,6 @@ function resultMoney(name: string, n: number, rel: Relation): string {
     default:
       return `The total is ${dollars(n)}`;
   }
-}
-
-function scoreOneTime(amount: number): string {
-  const n = Math.abs(amount);
-  const kind = amount > 0 ? "bonus" : "penalty";
-  return `starts the first round with a one-time ${n}-point ${kind}`;
-}
-
-function scoreOneTimes(b1: number, b2: number): string {
-  const noun = (n: number) =>
-    n > 0 ? `${n}-point bonus` : `${Math.abs(n)}-point penalty`;
-  return `starts the first round with a one-time ${noun(b1)} and a one-time ${noun(b2)}`;
 }
 
 function leftoverMoney(name: string, n: number, rel: Relation): string {
@@ -292,21 +620,6 @@ function leftoverCount(name: string, n: number, rel: Relation): string {
       return `${name} has more than ${n} left`;
     default:
       return `${name} has ${n} left`;
-  }
-}
-
-function scoreThen(n: number, rel: Relation): string {
-  switch (rel) {
-    case "≤":
-      return `The score is then at most ${signedNum(n)}`;
-    case "<":
-      return `The score is then less than ${signedNum(n)}`;
-    case "≥":
-      return `The score is then at least ${signedNum(n)}`;
-    case ">":
-      return `The score is then more than ${signedNum(n)}`;
-    default:
-      return `The score is then ${signedNum(n)}`;
   }
 }
 
@@ -391,12 +704,11 @@ function combineStory(
   const { name, item, place, friendA, friendB, feeA, feeB, rel } = ctx;
 
   if (a < 0) {
-    return wp(
-      ctx,
-      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round and ${scoreOneTimes(b1, b2)}. ${scoreThen(total, rel)}.`,
-      `How many rounds did ${name} play?`,
-      "the number of rounds",
-    );
+    return pick([
+      () => numberCompareStory(eq, ctx),
+      () => overnightStory(eq, ctx),
+      () => numberMachine(eq, ctx),
+    ])();
   }
 
   if (a === 1) {
@@ -443,7 +755,12 @@ function distributeStory(
   const total = eq.rightB;
   const { name, item, rel } = ctx;
 
-  if (outer < 0) return numberMachine(eq, ctx);
+  if (outer < 0 || ctx.rel !== "=") {
+    return pick([
+      () => distributeNumberStory(p, total, ctx),
+      () => numberMachine(eq, ctx),
+    ])();
+  }
 
   if (innerB >= 0) {
     return wp(
@@ -501,6 +818,17 @@ function quotientStory(
   }
 
   if (innerB > 0) {
+    if (
+      (rel === "≥" || rel === ">" || rel === "≤" || rel === "<") &&
+      Math.random() < 0.45
+    ) {
+      return wp(
+        ctx,
+        `${name}'s first tests totaled ${innerB} points. ${name} wants the average of ${divisor} tests to be ${averageBound(right, rel)}.`,
+        "What last-test scores would work?",
+        "the unknown number",
+      );
+    }
     return wp(
       ctx,
       `${name} had some ${item.plural}. After picking up ${innerB} more at ${place} and splitting them into ${divisor} boxes, ${eachBox}.`,
@@ -594,7 +922,11 @@ function phraseTimes(a: number, b: number): string {
       ? "the number"
       : a === -1
         ? "the opposite of the number"
-        : `${signedNum(a)} times the number`;
+        : a === 2
+          ? "twice the number"
+          : a === -2
+            ? "the opposite of twice the number"
+            : `${signedNum(a)} times the number`;
   if (b === 0) return times;
   if (b > 0) return `${times} plus ${b}`;
   return `${times} minus ${Math.abs(b)}`;
@@ -617,15 +949,14 @@ function twoStepStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
   const { name, item, place, feeA, rel } = ctx;
 
   if (a < 0) {
-    return wp(
-      ctx,
-      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round and ${scoreOneTime(b)}. ${scoreThen(total, rel)}.`,
-      `How many rounds did ${name} play?`,
-      "the number of rounds",
-    );
+    return negativeCoefStory(eq, ctx);
   }
 
   if (a === 1) return oneStepAddSub(eq, ctx);
+
+  if (b > 0 && (rel === "≥" || rel === ">")) {
+    if (Math.random() < 0.5) return rateToGoalStory(eq, ctx);
+  }
 
   const cost = `${cap(item.plural)} cost ${dollars(a)} each.`;
   if (b > 0) {
@@ -650,7 +981,12 @@ function oneStepAddSub(eq: LinearEq, ctx: StoryCtx): WordProblem {
   const total = eq.rightB;
   const { name, item, place, friendA, rel } = ctx;
 
-  if (eq.leftA === -1) return numberMachine(eq, ctx);
+  if (eq.leftA === -1) {
+    return pick([
+      () => numberCompareStory(eq, ctx),
+      () => overnightStory(eq, ctx),
+    ])();
+  }
 
   if (b > 0) {
     if (total < 0) return numberMachine(eq, ctx);
@@ -689,7 +1025,14 @@ function oneStepMul(eq: LinearEq, ctx: StoryCtx): WordProblem {
   const total = eq.rightB;
   const { name, item, place, rel } = ctx;
 
-  if (a < 0) return numberMachine(eq, ctx);
+  if (a < 0) return negativeCoefStory(eq, ctx);
+
+  if (rel === "≤" || rel === "<") {
+    if (Math.random() < 0.5) return capacityStory(eq, ctx);
+  }
+  if (rel === "≥" || rel === ">") {
+    if (Math.random() < 0.5) return fundraisingStory(eq, ctx);
+  }
 
   if (rel === "=") {
     return wp(
@@ -801,5 +1144,7 @@ export function storyMustMention(eq: LinearEq): number[] {
 }
 
 export function digitsInText(text: string): number[] {
-  return [...text.matchAll(/\d+/g)].map((m) => Number(m[0]));
+  const nums = [...text.matchAll(/\d+/g)].map((m) => Number(m[0]));
+  if (/\btwice\b/i.test(text)) nums.push(2);
+  return nums;
 }
