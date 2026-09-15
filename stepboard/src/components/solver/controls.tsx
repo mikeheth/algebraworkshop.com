@@ -152,7 +152,7 @@ export function ControlsPanel({
           label="Word problem"
           hint={
             noun === "inequality"
-              ? "Turn this on, then generate a new inequality. A story you can translate into the algebra."
+              ? "Turn this on before generating a new inequality. A story you can translate into the algebra."
               : "A story you can translate into this equation"
           }
           checked={settings.wordProblem}
