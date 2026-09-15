@@ -618,6 +618,26 @@ describe("inequalities", () => {
       );
     }
   });
+
+  it("makes a score bonus a one-time first-round add-on", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: -7,
+      leftB: 6,
+      rightA: 0,
+      rightB: -85,
+      presentation: { form: "standard" },
+      relation: "≥",
+    };
+    const word = makeWordProblem(eq, 13);
+    assert.match(word.story, /loses 7 points in each round/i);
+    assert.match(
+      word.story,
+      /starts the first round with a one-time 6-point bonus/i,
+    );
+    assert.doesNotMatch(word.story, /gains 6 bonus points/i);
+    assertStoryMatchesEquation(eq, word.story, word.question);
+  });
 });
 
 function assertStoryMatchesEquation(

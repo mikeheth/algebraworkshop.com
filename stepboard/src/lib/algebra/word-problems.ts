@@ -195,9 +195,16 @@ function resultMoney(name: string, n: number, rel: Relation): string {
   }
 }
 
-function scoreMove(amount: number): string {
-  if (amount > 0) return `gains ${amount} bonus points`;
-  return `takes a ${Math.abs(amount)}-point penalty`;
+function scoreOneTime(amount: number): string {
+  const n = Math.abs(amount);
+  const kind = amount > 0 ? "bonus" : "penalty";
+  return `starts the first round with a one-time ${n}-point ${kind}`;
+}
+
+function scoreOneTimes(b1: number, b2: number): string {
+  const noun = (n: number) =>
+    n > 0 ? `${n}-point bonus` : `${Math.abs(n)}-point penalty`;
+  return `starts the first round with a one-time ${noun(b1)} and a one-time ${noun(b2)}`;
 }
 
 function leftoverMoney(name: string, n: number, rel: Relation): string {
@@ -345,7 +352,7 @@ function combineStory(
   if (a < 0) {
     return wp(
       ctx,
-      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round, ${scoreMove(b1)}, and ${scoreMove(b2)}. ${scoreThen(total, rel)}.`,
+      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round and ${scoreOneTimes(b1, b2)}. ${scoreThen(total, rel)}.`,
       `How many rounds did ${name} play?`,
       "the number of rounds",
     );
@@ -571,7 +578,7 @@ function twoStepStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
   if (a < 0) {
     return wp(
       ctx,
-      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round and ${scoreMove(b)}. ${scoreThen(total, rel)}.`,
+      `${name} loses ${Math.abs(a)} point${Math.abs(a) === 1 ? "" : "s"} in each round and ${scoreOneTime(b)}. ${scoreThen(total, rel)}.`,
       `How many rounds did ${name} play?`,
       "the number of rounds",
     );
