@@ -154,7 +154,11 @@ function wp(
   };
 }
 
-/** Counts of things in a story cannot be negative; prices and "a number" can. */
+/**
+ * Zero-floor the graph only for countable story units (objects, people,
+ * rounds, months). Signed quantities — money, "a number", scores as
+ * values — may be negative, so they stay unbounded.
+ */
 export function countDomain(unknown: string): {
   nonNegative: boolean;
   countNoun?: string;

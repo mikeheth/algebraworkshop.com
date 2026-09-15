@@ -1,6 +1,6 @@
 import { solveEquation } from "./solve.ts";
 import { maybeNeg, pick, randIntNonZero } from "./random.ts";
-import { countDomainNote, makeWordProblem } from "./word-problems.ts";
+import { makeWordProblem } from "./word-problems.ts";
 import type { Board, LinearEq, Presentation, Problem, Relation, Settings } from "./types.ts";
 
 const MAX_TRIES = 80;
@@ -26,18 +26,6 @@ export function generateProblem(
       const word = settings.wordProblem
         ? makeWordProblem(eq, built.solution, built.structureLabel)
         : undefined;
-      if (word?.nonNegative) {
-        const sol = solved.steps.find((s) => s.isSolution);
-        const note = countDomainNote(
-          sol?.line.rel,
-          built.solution,
-          eq.variable,
-          word.countNoun ?? "that count",
-        );
-        if (sol && note) {
-          sol.explanation = `${sol.explanation} ${note}`;
-        }
-      }
       const label =
         board === "inequalities"
           ? built.structureLabel.replace("linear", "inequality") +

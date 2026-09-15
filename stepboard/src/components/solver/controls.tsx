@@ -150,7 +150,7 @@ export function ControlsPanel({
         />
         <ToggleRow
           label="Word problem"
-          hint="A story you can translate into this equation"
+          hint={`Turn this on, then generate a new ${noun}. A story you can translate into the algebra.`}
           checked={settings.wordProblem}
           onCheckedChange={(wordProblem) => onChange({ wordProblem })}
         />
@@ -198,8 +198,8 @@ export function ControlsPanel({
         </div>
 
         <p className="text-xs leading-relaxed text-muted">
-          Integer solutions only. Ranges steer generation; a new {noun} always
-          matches the current step count.
+          Integer solutions only. Ranges steer generation. A new {noun} matches
+          the current steps and Word problem setting.
         </p>
       </div>
     </aside>

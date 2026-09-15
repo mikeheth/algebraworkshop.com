@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { generateProblem } from "@/lib/algebra/generate";
 import { equationPlain } from "@/lib/algebra/format";
 import { nextPracticeIndex, practiceChoices, solveByDividingAllTerms, solveByDividingGroup } from "@/lib/algebra/solve";
+import { countDomainNote } from "@/lib/algebra/word-problems";
 import {
   DEFAULT_SETTINGS,
   DEFAULT_INEQ_SETTINGS,
@@ -111,12 +112,6 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
   const patch = (partial: Partial<Settings>) => {
     const next = { ...settings, ...partial };
     setSettings(next);
-    if (partial.wordProblem === true) {
-      rebuild(next);
-    } else if (partial.wordProblem === false) {
-      setProblem((p) => (p ? { ...p, word: undefined } : p));
-      setShowEquation(true);
-    }
     if (partial.stepCount !== undefined && partial.stepCount !== settings.stepCount) {
       rebuild(next);
     }
@@ -345,6 +340,17 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
                     const active = i === rows.length - 1;
                     const firstCheck =
                       !!step.isCheck && !rows.slice(0, i).some((s) => s.isCheck);
+                    const domainNote =
+                      active &&
+                      step.isSolution &&
+                      problem?.word?.nonNegative
+                        ? countDomainNote(
+                            step.line.rel,
+                            problem.solution,
+                            problem.eq.variable,
+                            problem.word.countNoun ?? "that count",
+                          )
+                        : null;
                     return (
                       <div
                         key={step.id}
@@ -378,6 +384,11 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
                             <p className="mt-1 text-sm leading-relaxed text-ink-soft">
                               {step.explanation}
                             </p>
+                            {domainNote ? (
+                              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                                {domainNote}
+                              </p>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>

@@ -658,8 +658,36 @@ describe("inequalities", () => {
     const sol = steps.find((s) => s.isSolution);
     assert.ok(sol);
     assert.equal(sol.line.rel, "≤");
+    assert.doesNotMatch(sol.explanation, /can't be negative/);
     const note = countDomainNote(sol.line.rel, 3, "x", word.countNoun ?? "rounds");
     assert.equal(note, "Rounds can't be negative, so 0 ≤ x ≤ 3.");
+  });
+
+  it("does not constrain the graph when a negative unknown makes sense", () => {
+    const eq: LinearEq = {
+      variable: "n",
+      leftA: 3,
+      leftB: 6,
+      rightA: 0,
+      rightB: -9,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    const word = makeWordProblem(eq, -5);
+    assert.match(word.story, /thinking of a number/i);
+    assert.equal(word.nonNegative, false);
+    assert.equal(word.countNoun, undefined);
+  });
+
+  it("leaves a non-story inequality unbounded on the left", () => {
+    const problem = generateProblem(
+      { ...DEFAULT_SETTINGS, stepCount: 1, negatives: true, wordProblem: false },
+      "inequalities",
+    );
+    assert.equal(problem.word, undefined);
+    const sol = problem.steps.find((s) => s.isSolution);
+    assert.ok(sol);
+    assert.doesNotMatch(sol.explanation ?? "", /can't be negative/);
   });
 });
 
