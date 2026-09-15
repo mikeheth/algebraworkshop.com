@@ -689,6 +689,49 @@ describe("inequalities", () => {
     assert.ok(sol);
     assert.doesNotMatch(sol.explanation ?? "", /can't be negative/);
   });
+
+  it("names a discrete count for bought items, not for money or a number", () => {
+    const items: LinearEq = {
+      variable: "x",
+      leftA: 4,
+      leftB: 8,
+      rightA: 0,
+      rightB: 40,
+      presentation: { form: "standard" },
+      relation: "≤",
+    };
+    const word = makeWordProblem(items, 8);
+    assert.ok(word.countNoun);
+    assert.match(
+      word.countNoun,
+      /tickets|notebooks|smoothies|posters|muffins/i,
+    );
+
+    const money: LinearEq = {
+      variable: "x",
+      leftA: 1,
+      leftB: -20,
+      rightA: 0,
+      rightB: -8,
+      presentation: { form: "standard" },
+      relation: "≤",
+    };
+    const cash = makeWordProblem(money, 12);
+    assert.match(cash.unknown, /dollars/i);
+    assert.equal(cash.countNoun, undefined);
+
+    const number: LinearEq = {
+      variable: "n",
+      leftA: 3,
+      leftB: 6,
+      rightA: 0,
+      rightB: -9,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    const thinking = makeWordProblem(number, -5);
+    assert.equal(thinking.countNoun, undefined);
+  });
 });
 
 function assertStoryMatchesEquation(

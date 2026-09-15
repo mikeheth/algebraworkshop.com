@@ -48,7 +48,9 @@ export function NumberLine({
         viewBox="0 0 320 56"
         className="w-full text-ink"
         role="img"
-        aria-label={compound}
+        aria-label={
+          unit ? `${compound}. Integer values only.` : compound
+        }
       >
         <line
           x1="8"
@@ -111,6 +113,9 @@ export function NumberLine({
         />
       </svg>
       <p className="mt-1 text-xs text-ink-soft">{caption()}</p>
+      {unit ? (
+        <p className="mt-1 text-xs font-medium text-ink">Integer values only.</p>
+      ) : null}
     </div>
   );
 

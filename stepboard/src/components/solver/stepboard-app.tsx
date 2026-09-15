@@ -373,7 +373,7 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
                           size={step.isOriginal || step.isSolution ? "xl" : "lg"}
                           className={cn(!active && "opacity-70")}
                         />
-                        {active && step.isSolution && board === "inequalities" && step.line.rel && step.line.rel !== "=" ? (
+                        {step.isSolution && board === "inequalities" && step.line.rel && step.line.rel !== "=" ? (
                           <NumberLine
                             value={problem?.solution ?? 0}
                             rel={step.line.rel}
