@@ -99,6 +99,9 @@ export type WordProblem = {
   question: string;
   unknown: string;
   letStatement: string;
+  /** True when the unknown is a count that cannot be negative (rounds, tickets, months). */
+  nonNegative?: boolean;
+  countNoun?: string;
 };
 
 export type Problem = {

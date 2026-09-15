@@ -5,6 +5,7 @@ import { generateProblem } from "./generate.ts";
 import { nextPracticeIndex, practiceChoices, solveByDividingAllTerms, solveByDividingGroup, solveEquation } from "./solve.ts";
 import { DEFAULT_SETTINGS, type LinearEq, type Settings } from "./types.ts";
 import {
+  countDomainNote,
   digitsInText,
   makeWordProblem,
   storyMustMention,
@@ -636,7 +637,29 @@ describe("inequalities", () => {
       /starts the first round with a one-time 6-point bonus/i,
     );
     assert.doesNotMatch(word.story, /gains 6 bonus points/i);
+    assert.equal(word.nonNegative, true);
+    assert.equal(word.countNoun, "rounds");
     assertStoryMatchesEquation(eq, word.story, word.question);
+  });
+
+  it("puts a left-hand limit at zero when rounds cannot be negative", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: -2,
+      leftB: -1,
+      rightA: 0,
+      rightB: -7,
+      presentation: { form: "standard" },
+      relation: "≥",
+    };
+    const word = makeWordProblem(eq, 3);
+    assert.equal(word.nonNegative, true);
+    const { steps } = solveEquation(eq, 3);
+    const sol = steps.find((s) => s.isSolution);
+    assert.ok(sol);
+    assert.equal(sol.line.rel, "≤");
+    const note = countDomainNote(sol.line.rel, 3, "x", word.countNoun ?? "rounds");
+    assert.equal(note, "Rounds can't be negative, so 0 ≤ x ≤ 3.");
   });
 });
 

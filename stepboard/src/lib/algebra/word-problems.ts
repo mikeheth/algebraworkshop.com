@@ -144,12 +144,49 @@ function wp(
   question: string,
   unknown: string,
 ): WordProblem {
+  const domain = countDomain(unknown);
   return {
     story,
     question: withBoundCue(ctx.rel, question),
     unknown,
     letStatement: `Let ${ctx.v} = ${unknown}.`,
+    ...domain,
   };
+}
+
+/** Counts of things in a story cannot be negative; prices and "a number" can. */
+export function countDomain(unknown: string): {
+  nonNegative: boolean;
+  countNoun?: string;
+} {
+  if (/dollar|price|unknown number/i.test(unknown)) {
+    return { nonNegative: false };
+  }
+  if (/\brounds?\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "rounds" };
+  }
+  if (/\bmonths?\b/i.test(unknown)) {
+    return { nonNegative: true, countNoun: "months" };
+  }
+  const bought = unknown.match(/number of (.+?) \w+ bought/i);
+  if (bought) return { nonNegative: true, countNoun: bought[1]!.trim() };
+  const starting = unknown.match(/starting number of (.+)/i);
+  if (starting) return { nonNegative: true, countNoun: starting[1]!.trim() };
+  const pile = unknown.match(/number of (.+?) in the pile/i);
+  if (pile) return { nonNegative: true, countNoun: pile[1]!.trim() };
+  return { nonNegative: false };
+}
+
+/** Extra sentence after isolating, when the story forbids negative counts. */
+export function countDomainNote(
+  rel: Relation | undefined,
+  value: number,
+  variable: string,
+  unit: string,
+): string | null {
+  if (rel !== "<" && rel !== "≤") return null;
+  const capUnit = unit.charAt(0).toUpperCase() + unit.slice(1);
+  return `${capUnit} can't be negative, so 0 ≤ ${variable} ${rel} ${value}.`;
 }
 
 function withBoundCue(rel: Relation, question: string): string {

@@ -366,6 +366,8 @@ export function StepboardApp({ board = "equations" }: { board?: Board }) {
                             value={problem?.solution ?? 0}
                             rel={step.line.rel}
                             variable={problem?.eq.variable ?? "x"}
+                            floor={problem?.word?.nonNegative ? 0 : null}
+                            unit={problem?.word?.countNoun}
                           />
                         ) : null}
                         {active ? (
