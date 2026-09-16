@@ -88,7 +88,14 @@ function buildEquation(s: Settings, board: Board = "equations"): Built {
   const x = randIntNonZero(solMin, solMax);
 
   if (s.stepCount === 1) return oneStep(s, v, x);
-  if (s.stepCount === 2) return twoStep(s, v, x);
+  // Stretch turns on "variables on both sides" but leaves Steps at Two.
+  // Still emit both-sides so advanced word problems are not all one format.
+  if (s.stepCount === 2) {
+    if (s.bothSides && Math.random() < (s.wordProblem ? 0.6 : 0.28)) {
+      return bothSidesKind(s, v, x);
+    }
+    return twoStep(s, v, x);
+  }
   return threeStep(s, v, x);
 }
 
@@ -194,17 +201,7 @@ function threeStep(s: Settings, v: string, x: number): Built {
   const kind = pick(options);
 
   if (kind === "both") {
-    if (s.wordProblem) return bothSidesWord(s, v, Math.abs(x) || 1);
-    const leftA = coef(s, 0.2);
-    let rightA = coef(s, 0.2);
-    if (leftA === rightA) rightA = leftA + (leftA > 0 ? 1 : -1);
-    const leftB = maybeNeg(randIntNonZero(s.constMin, s.constMax), s.negatives);
-    const rightB = leftA * x + leftB - rightA * x;
-    return {
-      eq: linear(v, leftA, leftB, rightA, rightB),
-      solution: x,
-      structureLabel: "Three-step · both sides",
-    };
+    return bothSidesKind(s, v, x);
   }
 
   if (kind === "distribute") {
@@ -243,6 +240,20 @@ function threeStep(s: Settings, v: string, x: number): Built {
     },
     solution: x,
     structureLabel: "Three-step · combine",
+  };
+}
+
+function bothSidesKind(s: Settings, v: string, x: number): Built {
+  if (s.wordProblem) return bothSidesWord(s, v, Math.abs(x) || 1);
+  const leftA = coef(s, 0.2);
+  let rightA = coef(s, 0.2);
+  if (leftA === rightA) rightA = leftA + (leftA > 0 ? 1 : -1);
+  const leftB = maybeNeg(randIntNonZero(s.constMin, s.constMax), s.negatives);
+  const rightB = leftA * x + leftB - rightA * x;
+  return {
+    eq: linear(v, leftA, leftB, rightA, rightB),
+    solution: x,
+    structureLabel: "Three-step · both sides",
   };
 }
 

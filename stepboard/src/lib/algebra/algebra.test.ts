@@ -693,6 +693,33 @@ describe("inequalities", () => {
     assert.ok(both >= 5, `expected several both-sides stories, got ${both}`);
   });
 
+  it("emits both-sides shop and saver stories on stretch even at two steps", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      ...DIFFICULTY_PRESETS.hard,
+      difficulty: "hard",
+      wordProblem: true,
+      stepCount: 2,
+      negatives: true,
+      bothSides: true,
+      distribute: true,
+    };
+    let both = 0;
+    for (let i = 0; i < 40; i++) {
+      const problem = generateProblem(s, "inequalities");
+      assert.ok(problem.word, problem.structureLabel);
+      if (problem.eq.rightA !== 0) {
+        both += 1;
+        assert.doesNotMatch(problem.word.story, /thinking of a number/i);
+        assert.match(
+          `${problem.word.story} ${problem.word.question}`,
+          /charges \$|saves \$/,
+        );
+      }
+    }
+    assert.ok(both >= 8, `expected both-sides on two-step stretch, got ${both}`);
+  });
+
   it("does not tell a score story when the coefficient is negative", () => {
     const eq: LinearEq = {
       variable: "x",
