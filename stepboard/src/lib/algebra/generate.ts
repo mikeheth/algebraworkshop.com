@@ -21,6 +21,13 @@ export function generateProblem(
       const built = buildEquation(settings, board);
       const eq = withRelation(maybeFlipFriendly(built, settings, board).eq, board);
       if (settings.wordProblem && built.solution <= 0 && board !== "inequalities") continue;
+      if (
+        settings.wordProblem &&
+        eq.rightA !== 0 &&
+        (built.solution <= 0 || eq.leftA <= 0 || eq.rightA <= 0 || eq.leftB < 0 || eq.rightB < 0)
+      ) {
+        continue;
+      }
       const solved = solveEquation(eq, built.solution);
       if (solved.steps.length < 2) continue;
       const word = settings.wordProblem
@@ -55,6 +62,8 @@ function withRelation(eq: LinearEq, board: Board): LinearEq {
 function maybeFlipFriendly(built: Built, s: Settings, board: Board): Built {
   if (board !== "inequalities" || !s.negatives) return built;
   if (built.eq.presentation.form !== "standard") return built;
+  // Both-sides stories compare two positive rates. Don't flip those into a number story.
+  if (built.eq.rightA !== 0) return built;
   if (Math.abs(built.eq.leftA) <= 1) return built;
   if (Math.random() >= 0.45) return built;
   const a = -Math.abs(built.eq.leftA);
@@ -175,11 +184,17 @@ function twoStep(s: Settings, v: string, x: number): Built {
 
 function threeStep(s: Settings, v: string, x: number): Built {
   const options: Array<"both" | "distribute" | "combine"> = ["combine"];
-  if (s.bothSides) options.push("both");
+  if (s.bothSides) {
+    options.push("both");
+    // Stretch word problems were all "thinking of a number" because both-sides
+    // rarely survived negatives. Weight them so two-plan stories actually appear.
+    if (s.wordProblem) options.push("both");
+  }
   if (s.distribute) options.push("distribute");
   const kind = pick(options);
 
   if (kind === "both") {
+    if (s.wordProblem) return bothSidesWord(s, v, Math.abs(x) || 1);
     const leftA = coef(s, 0.2);
     let rightA = coef(s, 0.2);
     if (leftA === rightA) rightA = leftA + (leftA > 0 ? 1 : -1);
@@ -228,6 +243,31 @@ function threeStep(s: Settings, v: string, x: number): Built {
     },
     solution: x,
     structureLabel: "Three-step · combine",
+  };
+}
+
+/** Two shops / two savers need positive rates, positive fees, and a positive count. */
+function bothSidesWord(s: Settings, v: string, x: number): Built {
+  const xx = Math.min(8, Math.max(2, Math.abs(x) || 2));
+  const lo = Math.max(2, s.coefMin);
+  const hi = Math.max(lo + 1, s.coefMax);
+  const leftA = randIntNonZero(lo, hi);
+  let rightA = leftA + pick([1, 2, 3, -1, -2, -3]);
+  if (rightA < 2) rightA = 2;
+  if (rightA === leftA) rightA = leftA + 1;
+
+  const constLo = Math.max(4, s.constMin);
+  const constHi = Math.max(constLo + 1, Math.min(24, s.constMax));
+  let leftB = randIntNonZero(constLo, constHi);
+  let rightB = leftA * xx + leftB - rightA * xx;
+  if (rightB < 4) {
+    leftB += 4 - rightB;
+    rightB = leftA * xx + leftB - rightA * xx;
+  }
+  return {
+    eq: linear(v, leftA, leftB, rightA, rightB),
+    solution: xx,
+    structureLabel: "Three-step · both sides",
   };
 }
 

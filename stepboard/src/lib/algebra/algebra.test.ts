@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { evaluateSides, equationPlain } from "./format.ts";
 import { generateProblem } from "./generate.ts";
 import { nextPracticeIndex, practiceChoices, solveByDividingAllTerms, solveByDividingGroup, solveEquation } from "./solve.ts";
-import { DEFAULT_SETTINGS, type LinearEq, type Settings } from "./types.ts";
+import { DEFAULT_SETTINGS, DIFFICULTY_PRESETS, type LinearEq, type Settings } from "./types.ts";
 import {
   countDomainNote,
   digitsInText,
@@ -619,6 +619,78 @@ describe("inequalities", () => {
         problem.word.question,
       );
     }
+  });
+
+  it("writes two-shop and two-saver both-sides inequality stories", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 2,
+      leftB: 20,
+      rightA: 5,
+      rightB: 8,
+      presentation: { form: "standard" },
+      relation: "<",
+    };
+    let shops = 0;
+    let saves = 0;
+    for (let i = 0; i < 40; i++) {
+      const word = makeWordProblem(eq, 4);
+      const text = `${word.story} ${word.question}`;
+      assert.doesNotMatch(word.story, /thinking of a number/i);
+      assert.doesNotMatch(text, /Treat that number as a (maximum|minimum)/i);
+      assert.doesNotMatch(word.story, /points? in each round/i);
+      assert.equal(word.nonNegative, true);
+      if (/charges \$/.test(word.story)) {
+        shops += 1;
+        assert.match(word.story, /\$20 plus \$2 per /);
+        assert.match(word.story, /\$8 plus \$5 per /);
+        assert.match(word.question, /better deal/i);
+        assert.ok(word.countNoun);
+      } else if (/saves \$/.test(word.story)) {
+        saves += 1;
+        assert.match(word.story, /has \$20 and saves \$2 each week/);
+        assert.match(word.story, /has \$8 and saves \$5 each week/);
+        assert.equal(word.countNoun, "weeks");
+      }
+      assertStoryMatchesEquation(eq, word.story, word.question);
+    }
+    assert.ok(shops > 0, "expected two-shop stories");
+    assert.ok(saves > 0, "expected two-saver stories");
+  });
+
+  it("generates both-sides word problems in stretch inequalities", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      ...DIFFICULTY_PRESETS.hard,
+      difficulty: "hard",
+      wordProblem: true,
+      stepCount: 3,
+      negatives: true,
+      bothSides: true,
+      distribute: true,
+    };
+    let both = 0;
+    for (let i = 0; i < 40; i++) {
+      const problem = generateProblem(s, "inequalities");
+      assert.ok(problem.word, problem.structureLabel);
+      assertStoryMatchesEquation(
+        problem.eq,
+        problem.word.story,
+        problem.word.question,
+      );
+      if (problem.eq.rightA !== 0) {
+        both += 1;
+        assert.doesNotMatch(problem.word.story, /thinking of a number/i);
+        assert.match(
+          `${problem.word.story} ${problem.word.question}`,
+          /charges \$|saves \$/,
+        );
+        assert.ok(problem.solution > 0);
+        assert.ok(problem.eq.leftA > 0 && problem.eq.rightA > 0);
+        assert.equal(problem.word.nonNegative, true);
+      }
+    }
+    assert.ok(both >= 5, `expected several both-sides stories, got ${both}`);
   });
 
   it("does not tell a score story when the coefficient is negative", () => {

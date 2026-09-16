@@ -148,11 +148,12 @@ function wp(
   story: string,
   question: string,
   unknown: string,
+  opts?: { boundCue?: boolean },
 ): WordProblem {
   const domain = countDomain(unknown);
   return {
     story,
-    question: withBoundCue(ctx.rel, question),
+    question: opts?.boundCue === false ? question : withBoundCue(ctx.rel, question),
     unknown,
     letStatement: `Let ${ctx.v} = ${unknown}.`,
     ...domain,
@@ -198,6 +199,8 @@ export function countDomain(unknown: string): {
   if (starting) return { nonNegative: true, countNoun: starting[1]!.trim() };
   const pile = unknown.match(/number of (.+?) in the pile/i);
   if (pile) return { nonNegative: true, countNoun: pile[1]!.trim() };
+  const ofCount = unknown.match(/number of (.+)/i);
+  if (ofCount) return { nonNegative: true, countNoun: ofCount[1]!.trim() };
   return { nonNegative: false };
 }
 
@@ -865,30 +868,70 @@ function countNoun(n: number, item: Item): string {
 }
 
 function bothSidesStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
-  const { name, friendA, rel } = ctx;
-  const compare = plansCompare(rel, name, friendA);
+  if (eq.leftA <= 0 || eq.rightA <= 0 || eq.leftB < 0 || eq.rightB < 0) {
+    return bothSidesNumberStory(eq, ctx);
+  }
+  return Math.random() < 0.5 ? shopBothSides(eq, ctx) : saveBothSides(eq, ctx);
+}
+
+function shopBothSides(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const { item, place, rel } = ctx;
+  const other =
+    pick(item.places.filter((p) => p !== place)) ?? "the school store";
+  const left = `${dollars(eq.leftB)} plus ${dollars(eq.leftA)} per ${item.singular}`;
+  const right = `${dollars(eq.rightB)} plus ${dollars(eq.rightA)} per ${item.singular}`;
   return wp(
     ctx,
-    `${name}'s plan is ${planCost(eq.leftA, eq.leftB)}. ${friendA}'s plan is ${planCost(eq.rightA, eq.rightB)}. ${compare}`,
-    rel === "="
-      ? "After how many months do the two plans cost the same?"
-      : "After how many months is that true?",
-    "the number of months",
+    `${cap(place)} charges ${left}. ${cap(other)} charges ${right}.`,
+    shopQuestion(rel, place, other, item.plural),
+    `the number of ${item.plural}`,
+    { boundCue: false },
   );
 }
 
-function plansCompare(rel: Relation, name: string, friend: string): string {
+function shopQuestion(
+  rel: Relation,
+  placeA: string,
+  placeB: string,
+  plural: string,
+): string {
   switch (rel) {
     case "≤":
-      return `After the same number of months, ${name}'s plan costs at most as much as ${friend}'s plan.`;
+      return `For how many ${plural} does ${placeA} cost at most as much as ${placeB}?`;
     case "<":
-      return `After the same number of months, ${name}'s plan costs less than ${friend}'s plan.`;
+      return `For how many ${plural} is ${placeA} a better deal?`;
     case "≥":
-      return `After the same number of months, ${name}'s plan costs at least as much as ${friend}'s plan.`;
+      return `For how many ${plural} does ${placeA} cost at least as much as ${placeB}?`;
     case ">":
-      return `After the same number of months, ${name}'s plan costs more than ${friend}'s plan.`;
+      return `For how many ${plural} does ${placeA} cost more than ${placeB}?`;
     default:
-      return "After the same number of months, the two plans cost the same.";
+      return `After how many ${plural} do they cost the same?`;
+  }
+}
+
+function saveBothSides(eq: LinearEq, ctx: StoryCtx): WordProblem {
+  const { name, friendA, rel } = ctx;
+  return wp(
+    ctx,
+    `${name} has ${dollars(eq.leftB)} and saves ${dollars(eq.leftA)} each week. ${friendA} has ${dollars(eq.rightB)} and saves ${dollars(eq.rightA)} each week.`,
+    saveQuestion(rel, name, friendA),
+    "the number of weeks",
+    { boundCue: false },
+  );
+}
+
+function saveQuestion(rel: Relation, name: string, friend: string): string {
+  switch (rel) {
+    case "≤":
+      return `After how many weeks does ${name} have at most as much as ${friend}?`;
+    case "<":
+      return `After how many weeks does ${name} have less than ${friend}?`;
+    case "≥":
+      return `After how many weeks does ${name} have at least as much as ${friend}?`;
+    case ">":
+      return `After how many weeks does ${name} have more than ${friend}?`;
+    default:
+      return `After how many weeks do they have the same amount?`;
   }
 }
 
@@ -930,16 +973,6 @@ function phraseTimes(a: number, b: number): string {
   if (b === 0) return times;
   if (b > 0) return `${times} plus ${b}`;
   return `${times} minus ${Math.abs(b)}`;
-}
-
-function planCost(monthly: number, fee: number): string {
-  const rate =
-    monthly < 0
-      ? `−${dollars(monthly)} per month`
-      : `${dollars(monthly)} per month`;
-  if (fee === 0) return rate;
-  if (fee > 0) return `${rate} plus a ${dollars(fee)} signup fee`;
-  return `${rate} minus a ${dollars(fee)} signup fee`;
 }
 
 function twoStepStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
