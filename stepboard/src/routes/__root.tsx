@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Algebra Workshop: line-by-line Algebra 1. Stepboard is free. Inequalities is Plus.",
+          "Algebra Workshop: line-by-line Algebra 1. Stepboard is free. Inequalities and Literal equations are Plus.",
       },
       { name: "theme-color", content: "#2f5d50" },
     ],

@@ -61,7 +61,11 @@ function Token({ token }: { token: MathToken }) {
     case "coef":
       return <span className="tok-coef">{formatNumber(token.value)}</span>;
     case "var":
-      return <span className="tok-var">{token.letter}</span>;
+      return (
+        <span className={token.param ? "tok-param" : "tok-var"}>
+          {token.letter}
+        </span>
+      );
     case "const":
       return <span className="tok-const">{formatNumber(token.value)}</span>;
     case "op":

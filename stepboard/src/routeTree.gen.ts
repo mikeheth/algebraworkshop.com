@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as InequalitiesRouteImport } from './routes/inequalities'
+import { Route as LiteralsRouteImport } from './routes/literals'
 import { Route as StepboardRouteImport } from './routes/stepboard'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,6 +24,11 @@ const InequalitiesRoute = InequalitiesRouteImport.update({
   path: '/inequalities',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LiteralsRoute = LiteralsRouteImport.update({
+  id: '/literals',
+  path: '/literals',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StepboardRoute = StepboardRouteImport.update({
   id: '/stepboard',
   path: '/stepboard',
@@ -32,30 +38,34 @@ const StepboardRoute = StepboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/inequalities': typeof InequalitiesRoute
+  '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/inequalities': typeof InequalitiesRoute
+  '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/inequalities': typeof InequalitiesRoute
+  '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/inequalities' | '/stepboard'
+  fullPaths: '/' | '/inequalities' | '/literals' | '/stepboard'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/inequalities' | '/stepboard'
-  id: '__root__' | '/' | '/inequalities' | '/stepboard'
+  to: '/' | '/inequalities' | '/literals' | '/stepboard'
+  id: '__root__' | '/' | '/inequalities' | '/literals' | '/stepboard'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   InequalitiesRoute: typeof InequalitiesRoute
+  LiteralsRoute: typeof LiteralsRoute
   StepboardRoute: typeof StepboardRoute
 }
 
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InequalitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/literals': {
+      id: '/literals'
+      path: '/literals'
+      fullPath: '/literals'
+      preLoaderRoute: typeof LiteralsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/stepboard': {
       id: '/stepboard'
       path: '/stepboard'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   InequalitiesRoute: InequalitiesRoute,
+  LiteralsRoute: LiteralsRoute,
   StepboardRoute: StepboardRoute,
 }
 export const routeTree = rootRouteImport

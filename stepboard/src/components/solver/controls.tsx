@@ -166,26 +166,22 @@ export function ControlsPanel({
             onChange({ mode: on ? "practice" : "watch" })
           }
         />
-        {settings.stepCount === 3 ? (
-          <>
-            <ToggleRow
-              label="Variables on both sides"
-              hint="Collect like terms across the equals sign"
-              checked={settings.bothSides}
-              onCheckedChange={(bothSides) =>
-                onChange({ bothSides, difficulty: "custom" })
-              }
-            />
-            <ToggleRow
-              label="Distributive property"
-              hint="Expand a(x + b) first"
-              checked={settings.distribute}
-              onCheckedChange={(distribute) =>
-                onChange({ distribute, difficulty: "custom" })
-              }
-            />
-          </>
-        ) : null}
+        <ToggleRow
+          label="Variables on both sides"
+          hint="Every new problem has a variable on both sides"
+          checked={settings.bothSides}
+          onCheckedChange={(bothSides) =>
+            onChange({ bothSides, difficulty: "custom" })
+          }
+        />
+        <ToggleRow
+          label="Distributive property"
+          hint="Every new problem has parentheses to expand"
+          checked={settings.distribute}
+          onCheckedChange={(distribute) =>
+            onChange({ distribute, difficulty: "custom" })
+          }
+        />
 
         <div className="flex gap-2 pt-1">
           <Button className="flex-1" onClick={onNew}>
@@ -203,8 +199,8 @@ export function ControlsPanel({
 
         <p className="text-xs leading-relaxed text-muted">
           {noun === "inequality"
-            ? "Integer solutions only. Ranges steer generation. A new inequality matches the current steps and Word problem setting."
-            : "Integer solutions only. Ranges steer generation; a new equation always matches the current step count."}
+            ? "Integer solutions only. Ranges steer generation. A new inequality matches the current steps, Word problem, Variables on both sides, and Distributive property settings."
+            : "Integer solutions only. Ranges steer generation. A new equation matches the current steps, Variables on both sides, and Distributive property settings."}
         </p>
       </div>
     </aside>

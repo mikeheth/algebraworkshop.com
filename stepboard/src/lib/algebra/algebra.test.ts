@@ -51,6 +51,80 @@ describe("algebra generator", () => {
     });
   });
 
+  it("puts a variable on both sides in every problem when that switch is on", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      stepCount: 2,
+      bothSides: true,
+      distribute: false,
+    };
+    for (let i = 0; i < 30; i++) {
+      const problem = generateProblem(s);
+      assert.notEqual(problem.eq.rightA, 0, problem.structureLabel);
+      assert.notEqual(problem.eq.presentation.form, "distribute");
+    }
+  });
+
+  it("puts parentheses in every problem when distributive property is on", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      stepCount: 2,
+      bothSides: false,
+      distribute: true,
+    };
+    for (let i = 0; i < 30; i++) {
+      const problem = generateProblem(s);
+      assert.equal(problem.eq.presentation.form, "distribute", problem.structureLabel);
+      assert.equal(problem.eq.rightA, 0);
+    }
+  });
+
+  it("combines both switches into a(x + b) = cx + d", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      stepCount: 3,
+      bothSides: true,
+      distribute: true,
+      negatives: true,
+    };
+    for (let i = 0; i < 30; i++) {
+      const problem = generateProblem(s);
+      assert.equal(problem.eq.presentation.form, "distribute", problem.structureLabel);
+      assert.notEqual(problem.eq.rightA, 0, problem.structureLabel);
+      const values = evaluateSides(problem.eq, problem.solution);
+      assert.equal(values.left, values.right);
+    }
+  });
+
+  it("does not mix those structures in when both switches are off", () => {
+    const s: Settings = {
+      ...DEFAULT_SETTINGS,
+      stepCount: 3,
+      bothSides: false,
+      distribute: false,
+    };
+    for (let i = 0; i < 20; i++) {
+      const problem = generateProblem(s);
+      assert.equal(problem.eq.rightA, 0, problem.structureLabel);
+      assert.notEqual(problem.eq.presentation.form, "distribute");
+    }
+  });
+
+  it("does not offer divide-the-group when a variable sits on the right", () => {
+    const eq: LinearEq = {
+      variable: "x",
+      leftA: 3,
+      leftB: 6,
+      rightA: 2,
+      rightB: 8,
+      presentation: { form: "distribute", outer: 3, innerB: 2 },
+    };
+    const { steps } = solveEquation(eq, 2);
+    const first = practiceChoices(steps[0]!, steps, eq);
+    assert.ok(first.some((c) => c.correct && c.kind === "distribute"));
+    assert.ok(!first.some((c) => c.correct && c.kind === "divide" && c.apply === "divide-group"));
+  });
+
   it("keeps the quotient on the board while multiplying", () => {
     const eq: LinearEq = {
       variable: "x",
@@ -658,7 +732,7 @@ describe("inequalities", () => {
     assert.ok(saves > 0, "expected two-saver stories");
   });
 
-  it("generates both-sides word problems in stretch inequalities", () => {
+  it("generates both-sides word problems when that switch is on", () => {
     const s: Settings = {
       ...DEFAULT_SETTINGS,
       ...DIFFICULTY_PRESETS.hard,
@@ -667,33 +741,26 @@ describe("inequalities", () => {
       stepCount: 3,
       negatives: true,
       bothSides: true,
-      distribute: true,
+      distribute: false,
     };
-    let both = 0;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 25; i++) {
       const problem = generateProblem(s, "inequalities");
       assert.ok(problem.word, problem.structureLabel);
+      assert.notEqual(problem.eq.rightA, 0, problem.structureLabel);
+      assert.doesNotMatch(problem.word.story, /thinking of a number/i);
+      assert.match(
+        `${problem.word.story} ${problem.word.question}`,
+        /charges \$|saves \$/,
+      );
       assertStoryMatchesEquation(
         problem.eq,
         problem.word.story,
         problem.word.question,
       );
-      if (problem.eq.rightA !== 0) {
-        both += 1;
-        assert.doesNotMatch(problem.word.story, /thinking of a number/i);
-        assert.match(
-          `${problem.word.story} ${problem.word.question}`,
-          /charges \$|saves \$/,
-        );
-        assert.ok(problem.solution > 0);
-        assert.ok(problem.eq.leftA > 0 && problem.eq.rightA > 0);
-        assert.equal(problem.word.nonNegative, true);
-      }
     }
-    assert.ok(both >= 5, `expected several both-sides stories, got ${both}`);
   });
 
-  it("emits both-sides shop and saver stories on stretch even at two steps", () => {
+  it("emits both-sides shop and saver stories even at two steps when the switch is on", () => {
     const s: Settings = {
       ...DEFAULT_SETTINGS,
       ...DIFFICULTY_PRESETS.hard,
@@ -702,22 +769,17 @@ describe("inequalities", () => {
       stepCount: 2,
       negatives: true,
       bothSides: true,
-      distribute: true,
+      distribute: false,
     };
-    let both = 0;
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 20; i++) {
       const problem = generateProblem(s, "inequalities");
       assert.ok(problem.word, problem.structureLabel);
-      if (problem.eq.rightA !== 0) {
-        both += 1;
-        assert.doesNotMatch(problem.word.story, /thinking of a number/i);
-        assert.match(
-          `${problem.word.story} ${problem.word.question}`,
-          /charges \$|saves \$/,
-        );
-      }
+      assert.notEqual(problem.eq.rightA, 0);
+      assert.match(
+        `${problem.word.story} ${problem.word.question}`,
+        /charges \$|saves \$/,
+      );
     }
-    assert.ok(both >= 8, `expected both-sides on two-step stretch, got ${both}`);
   });
 
   it("does not tell a score story when the coefficient is negative", () => {

@@ -44,7 +44,7 @@ export type Presentation =
 
 export type MathToken =
   | { type: "coef"; value: number }
-  | { type: "var"; letter: string }
+  | { type: "var"; letter: string; param?: boolean }
   | { type: "const"; value: number }
   | { type: "op"; value: string }
   | { type: "frac"; num: MathToken[]; den: MathToken[] }
@@ -148,8 +148,6 @@ export const DIFFICULTY_PRESETS: Record<
     | "constMin"
     | "constMax"
     | "negatives"
-    | "bothSides"
-    | "distribute"
   >
 > = {
   easy: {
@@ -158,8 +156,6 @@ export const DIFFICULTY_PRESETS: Record<
     constMin: 1,
     constMax: 12,
     negatives: false,
-    bothSides: false,
-    distribute: false,
   },
   medium: {
     coefMin: 2,
@@ -167,8 +163,6 @@ export const DIFFICULTY_PRESETS: Record<
     constMin: 1,
     constMax: 20,
     negatives: true,
-    bothSides: false,
-    distribute: true,
   },
   hard: {
     coefMin: 2,
@@ -176,8 +170,6 @@ export const DIFFICULTY_PRESETS: Record<
     constMin: 1,
     constMax: 30,
     negatives: true,
-    bothSides: true,
-    distribute: true,
   },
 };
 

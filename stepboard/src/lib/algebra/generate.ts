@@ -24,6 +24,7 @@ export function generateProblem(
       if (
         settings.wordProblem &&
         eq.rightA !== 0 &&
+        eq.presentation.form !== "distribute" &&
         (built.solution <= 0 || eq.leftA <= 0 || eq.rightA <= 0 || eq.leftB < 0 || eq.rightB < 0)
       ) {
         continue;
@@ -87,16 +88,12 @@ function buildEquation(s: Settings, board: Board = "equations"): Built {
   const solMax = Math.min(16, Math.max(solMin + 2, s.constMax));
   const x = randIntNonZero(solMin, solMax);
 
+  if (s.bothSides && s.distribute) return bothSidesDistribute(s, v, x);
+  if (s.bothSides) return bothSidesKind(s, v, x);
+  if (s.distribute) return distributeKind(s, v, x);
   if (s.stepCount === 1) return oneStep(s, v, x);
-  // Stretch turns on "variables on both sides" but leaves Steps at Two.
-  // Still emit both-sides so advanced word problems are not all one format.
-  if (s.stepCount === 2) {
-    if (s.bothSides && Math.random() < (s.wordProblem ? 0.6 : 0.28)) {
-      return bothSidesKind(s, v, x);
-    }
-    return twoStep(s, v, x);
-  }
-  return threeStep(s, v, x);
+  if (s.stepCount === 2) return twoStep(s, v, x);
+  return combineKind(s, v, x);
 }
 
 function coef(s: Settings, chance = 0.22): number {
@@ -189,42 +186,7 @@ function twoStep(s: Settings, v: string, x: number): Built {
   };
 }
 
-function threeStep(s: Settings, v: string, x: number): Built {
-  const options: Array<"both" | "distribute" | "combine"> = ["combine"];
-  if (s.bothSides) {
-    options.push("both");
-    // Stretch word problems were all "thinking of a number" because both-sides
-    // rarely survived negatives. Weight them so two-plan stories actually appear.
-    if (s.wordProblem) options.push("both");
-  }
-  if (s.distribute) options.push("distribute");
-  const kind = pick(options);
-
-  if (kind === "both") {
-    return bothSidesKind(s, v, x);
-  }
-
-  if (kind === "distribute") {
-    const outer = coef(s, 0.15);
-    const innerB = maybeNeg(
-      randIntNonZero(s.constMin, Math.max(s.constMin, Math.min(s.constMax, 9))),
-      s.negatives,
-    );
-    const rightB = outer * (x + innerB);
-    return {
-      eq: {
-        variable: v,
-        leftA: outer,
-        leftB: outer * innerB,
-        rightA: 0,
-        rightB,
-        presentation: { form: "distribute", outer, innerB },
-      },
-      solution: x,
-      structureLabel: "Three-step · distributive",
-    };
-  }
-
+function combineKind(s: Settings, v: string, x: number): Built {
   const a = coef(s, 0.2);
   const b1 = maybeNeg(randIntNonZero(s.constMin, s.constMax), s.negatives);
   let b2 = maybeNeg(randIntNonZero(s.constMin, s.constMax), s.negatives);
@@ -243,6 +205,27 @@ function threeStep(s: Settings, v: string, x: number): Built {
   };
 }
 
+function distributeKind(s: Settings, v: string, x: number): Built {
+  const outer = coef(s, 0.15);
+  const innerB = maybeNeg(
+    randIntNonZero(s.constMin, Math.max(s.constMin, Math.min(s.constMax, 9))),
+    s.negatives,
+  );
+  const rightB = outer * (x + innerB);
+  return {
+    eq: {
+      variable: v,
+      leftA: outer,
+      leftB: outer * innerB,
+      rightA: 0,
+      rightB,
+      presentation: { form: "distribute", outer, innerB },
+    },
+    solution: x,
+    structureLabel: "Three-step · distributive",
+  };
+}
+
 function bothSidesKind(s: Settings, v: string, x: number): Built {
   if (s.wordProblem) return bothSidesWord(s, v, Math.abs(x) || 1);
   const leftA = coef(s, 0.2);
@@ -254,6 +237,39 @@ function bothSidesKind(s: Settings, v: string, x: number): Built {
     eq: linear(v, leftA, leftB, rightA, rightB),
     solution: x,
     structureLabel: "Three-step · both sides",
+  };
+}
+
+/** a(x + b) = cx + d — both switches on. */
+function bothSidesDistribute(s: Settings, v: string, x: number): Built {
+  const word = s.wordProblem;
+  const xx = word ? Math.max(2, Math.abs(x) || 2) : x;
+  const outer = word
+    ? randIntNonZero(Math.max(2, s.coefMin), Math.max(2, s.coefMax))
+    : coef(s, 0.15);
+  let innerB = maybeNeg(
+    randIntNonZero(s.constMin, Math.max(s.constMin, Math.min(s.constMax, 9))),
+    word ? false : s.negatives,
+  );
+  if (word) innerB = Math.abs(innerB) || 2;
+  let rightA = word
+    ? randIntNonZero(Math.max(2, s.coefMin), Math.max(2, s.coefMax))
+    : coef(s, 0.2);
+  if (rightA === outer) rightA = outer + (outer > 0 ? 1 : -1);
+  if (word && rightA <= 0) rightA = Math.abs(rightA) || outer + 1;
+  if (rightA === outer) rightA = outer + 1;
+  const rightB = outer * (xx + innerB) - rightA * xx;
+  return {
+    eq: {
+      variable: v,
+      leftA: outer,
+      leftB: outer * innerB,
+      rightA,
+      rightB,
+      presentation: { form: "distribute", outer, innerB },
+    },
+    solution: xx,
+    structureLabel: "Three-step · distribute both sides",
   };
 }
 

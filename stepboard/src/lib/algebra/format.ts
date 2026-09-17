@@ -85,7 +85,7 @@ export function lineFromPresentation(
             { type: "group", tokens: inner },
             { type: "op", value: ")" },
           ],
-          right: sideFromLinear(0, eq.rightB, v),
+          right: sideFromLinear(eq.rightA, eq.rightB, v),
         },
         rel,
       );
@@ -263,7 +263,7 @@ export function substitutionLine(
         { type: "const", value: abs(p.innerB) },
         { type: "op", value: ")" },
       ],
-      right: [{ type: "const", value: eq.rightB }],
+      right: substituteSide(eq.rightA, eq.rightB, eq.variable, solution),
     };
   }
   return {
@@ -286,7 +286,7 @@ export function evaluateSides(
   if (p.form === "distribute") {
     return {
       left: p.outer * (solution + p.innerB),
-      right: eq.rightB,
+      right: eq.rightA * solution + eq.rightB,
     };
   }
   return {

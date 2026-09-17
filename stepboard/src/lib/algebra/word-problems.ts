@@ -267,7 +267,7 @@ function timesANumber(a: number): string {
 function numberCompareStory(eq: LinearEq, ctx: StoryCtx): WordProblem {
   const p = eq.presentation;
   if (p.form === "distribute") {
-    return distributeNumberStory(p, eq.rightB, ctx);
+    return distributeNumberStory(p, eq.rightB, ctx, eq.rightA);
   }
   if (p.form === "combine") {
     return numberMachine(eq, ctx);
@@ -290,6 +290,7 @@ function distributeNumberStory(
   p: Extract<Presentation, { form: "distribute" }>,
   total: number,
   ctx: StoryCtx,
+  rightA = 0,
 ): WordProblem {
   const sum =
     p.innerB > 0
@@ -305,9 +306,10 @@ function distributeNumberStory(
         : p.outer === 1
           ? sum
           : `${signedNum(p.outer)} times ${sum}`;
+  const right = rightA !== 0 ? phraseTimes(rightA, total) : signedNum(total);
   return wp(
     ctx,
-    `${ctx.name} is thinking of a number. ${cap(times)} ${compareVerb(ctx.rel)} ${signedNum(total)}.`,
+    `${ctx.name} is thinking of a number. ${cap(times)} ${compareVerb(ctx.rel)} ${right}.`,
     ctx.rel === "="
       ? `What number is ${ctx.name} thinking of?`
       : `Which numbers could ${ctx.name} be thinking of?`,
@@ -758,9 +760,9 @@ function distributeStory(
   const total = eq.rightB;
   const { name, item, rel } = ctx;
 
-  if (outer < 0 || ctx.rel !== "=") {
+  if (eq.rightA !== 0 || outer < 0 || ctx.rel !== "=") {
     return pick([
-      () => distributeNumberStory(p, total, ctx),
+      () => distributeNumberStory(p, total, ctx, eq.rightA),
       () => numberMachine(eq, ctx),
     ])();
   }
@@ -1091,6 +1093,7 @@ function numberMachine(eq: LinearEq, ctx: StoryCtx): WordProblem {
   const { rel } = ctx;
 
   if (p.form === "distribute") {
+    if (eq.rightA !== 0) return distributeNumberStory(p, eq.rightB, ctx, eq.rightA);
     if (p.innerB !== 0) clauses.push(addClause(p.innerB));
     clauses.push(mulClause(p.outer));
   } else if (p.form === "combine") {
@@ -1160,7 +1163,8 @@ export function storyMustMention(eq: LinearEq): number[] {
   } else if (p.form === "distribute") {
     pushCoef(p.outer);
     pushConst(p.innerB);
-    out.push(Math.abs(eq.rightB));
+    pushCoef(eq.rightA);
+    pushConst(eq.rightB);
   } else if (p.form === "quotient") {
     pushConst(p.divisor);
     pushConst(p.innerB);

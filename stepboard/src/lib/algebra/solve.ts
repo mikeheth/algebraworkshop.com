@@ -106,7 +106,12 @@ export function solveEquation(
 
   if (eq.presentation.form === "distribute") {
     const p = eq.presentation;
-    if (strategy === "divide-group" && p.outer !== 0 && eq.rightB % p.outer === 0) {
+    if (
+      strategy === "divide-group" &&
+      p.outer !== 0 &&
+      eq.rightA === 0 &&
+      eq.rightB % p.outer === 0
+    ) {
       const reverse = maybeReverse(eq, p.outer);
       steps.push({
         id: nid(),
@@ -570,6 +575,7 @@ export function practiceChoices(
     const rhs = eq?.rightB;
     const even =
       outer !== 0 &&
+      eq?.rightA === 0 &&
       rhs != null &&
       Number.isInteger(rhs / outer) &&
       Math.abs(outer) > 1;
@@ -700,7 +706,9 @@ function originalExplanation(eq: LinearEq): string {
   const ineq = isInequality(relationOf(eq));
   switch (eq.presentation.form) {
     case "distribute":
-      return `A grouped expression sits on the left. Expand with the distributive property before isolating ${eq.variable}.`;
+      return eq.rightA !== 0
+        ? `A grouped expression sits on the left, and ${eq.variable} also appears on the right. Expand, then collect like terms.`
+        : `A grouped expression sits on the left. Expand with the distributive property before isolating ${eq.variable}.`;
     case "combine":
       return `Two constants share the left side with ${eq.variable}. Combine them first so only one constant remains.`;
     case "quotient":

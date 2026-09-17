@@ -105,6 +105,12 @@
     font-weight: inherit;
   }
 
+  .tok-param {
+    color: var(--color-coef);
+    font-style: italic;
+    font-weight: inherit;
+  }
+
   .tok-coef,
   .tok-const {
     font-variant-numeric: lining-nums tabular-nums;
