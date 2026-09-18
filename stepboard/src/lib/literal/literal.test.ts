@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { equationPlain } from "../algebra/format.ts";
 import { FORMULAS } from "./formulas.ts";
 import { generateLiteral } from "./generate.ts";
-import { literalPracticeChoices } from "./practice.ts";
+import { canAskPractice, literalPracticeChoices } from "./practice.ts";
 import { plain, solveLiteral } from "./solve.ts";
 import { DEFAULT_LIT_SETTINGS } from "./types.ts";
 
@@ -143,5 +143,15 @@ describe("literal equations", () => {
     assert.match(ok.label, /reciprocal of 9\/5/i);
     assert.ok(!choices.some((c) => c.correct && /by 5$/.test(c.label)));
     assert.ok(choices.some((c) => /by 5$/.test(c.label) && !c.correct));
+  });
+
+  it("does not skip simplify steps after a correct practice choice", () => {
+    const spec = FORMULAS.find((f) => f.id === "force")!;
+    const steps = solveLiteral(spec, "a");
+    assert.equal(canAskPractice(steps, 1), true);
+    assert.equal(canAskPractice(steps, 2), false);
+    const simplify = steps.findIndex((s) => s.property === "Simplify");
+    assert.ok(simplify > 1);
+    assert.equal(canAskPractice(steps, simplify + 1), false);
   });
 });

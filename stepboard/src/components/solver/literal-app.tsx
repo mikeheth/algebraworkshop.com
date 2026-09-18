@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { equationPlain } from "@/lib/algebra/format";
 import { PLAY_SPEEDS, type PlaySpeed, type PracticeChoice } from "@/lib/algebra/types";
 import { generateLiteral } from "@/lib/literal/generate";
-import { literalPracticeChoices, nextPracticeIndex } from "@/lib/literal/practice";
+import { canAskPractice, literalPracticeChoices } from "@/lib/literal/practice";
 import { DEFAULT_LIT_SETTINGS, type LitProblem, type LitSettings } from "@/lib/literal/types";
 import { cn } from "@/lib/utils";
 
@@ -87,9 +87,9 @@ export function LiteralApp() {
 
   const choices = useMemo(() => {
     if (!problem || settings.mode !== "practice" || !current) return [];
-    if (current.isSolution || current.isCheck) return [];
+    if (!canAskPractice(problem.steps, visible)) return [];
     return literalPracticeChoices(current, problem.steps);
-  }, [problem, settings.mode, current]);
+  }, [problem, settings.mode, current, visible]);
 
   useEffect(() => {
     if (!playing) {
@@ -136,8 +136,7 @@ export function LiteralApp() {
   const onChoice = (choice: PracticeChoice) => {
     if (!problem) return;
     if (choice.correct) {
-      const jump = nextPracticeIndex(problem.steps, visible - 1) + 1;
-      setVisible(jump);
+      setVisible((v) => Math.min(max, v + 1));
       setFeedback({
         ok: true,
         text: "That's the inverse. The equation stays balanced.",

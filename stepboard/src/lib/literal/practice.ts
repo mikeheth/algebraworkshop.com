@@ -1,5 +1,4 @@
 import type { PracticeChoice, SolveStep } from "../algebra/types.ts";
-import { nextPracticeIndex } from "../algebra/solve.ts";
 
 function labelFor(
   kind: PracticeChoice["kind"],
@@ -168,4 +167,10 @@ export function literalPracticeChoices(current: SolveStep, all: SolveStep[]): Pr
   return mixed.slice(0, 4);
 }
 
-export { nextPracticeIndex };
+/** Ask only when the next hidden step is an inverse — not a simplify, swap, or check. */
+export function canAskPractice(steps: SolveStep[], shownCount: number): boolean {
+  const current = steps[shownCount - 1];
+  const upcoming = steps[shownCount];
+  if (!current || current.isSolution || current.isCheck) return false;
+  return !!upcoming?.operation;
+}
