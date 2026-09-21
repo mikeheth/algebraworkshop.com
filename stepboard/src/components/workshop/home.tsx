@@ -74,7 +74,7 @@ export function WorkshopHome() {
           </h2>
           <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">
             Solve a formula for one letter. F = ma, y = mx + b, P = 2l + 2w.
-            Same inverses, with a number twin beside the formula.
+            Same inverses as Stepboard.
           </p>
           <p className="mt-6 text-sm font-medium text-accent">
             Preview literal equations

@@ -43,7 +43,7 @@ function LiteralsPage() {
             <ul className="mt-6 space-y-2 text-sm text-ink">
               <li>Solve a formula for one letter — F = ma, y = mx + b, and more</li>
               <li>Same inverse operations as Stepboard</li>
-              <li>A number twin so the move looks familiar</li>
+              <li>Word problems: isolate the letter, then plug in</li>
               <li>Practice: “What is the next move?”</li>
             </ul>
             <div className="mt-8 flex flex-wrap gap-3">

@@ -1,17 +1,17 @@
-import type { EquationLine, PlaySpeed, PracticeChoice, SolveStep } from "../algebra/types.ts";
+import type { PlaySpeed, PracticeChoice, SolveStep } from "../algebra/types.ts";
 
 export type LitStepFilter = 1 | 2 | "mix";
 
 export type LitSettings = {
   stepFilter: LitStepFilter;
-  numericTwin: boolean;
+  wordProblem: boolean;
   mode: "watch" | "practice";
   playSpeed: PlaySpeed;
 };
 
 export const DEFAULT_LIT_SETTINGS: LitSettings = {
   stepFilter: "mix",
-  numericTwin: true,
+  wordProblem: false,
   mode: "watch",
   playSpeed: "classroom",
 };
@@ -65,18 +65,17 @@ export type FormulaSpec = {
   solveFor: string[];
 };
 
-export type NumericTwin = {
-  line: EquationLine;
-  note: string;
-};
-
 export type LitProblem = {
   spec: FormulaSpec;
   target: string;
   steps: SolveStep[];
   structureLabel: string;
   prompt: string;
-  twin?: NumericTwin;
+  word?: {
+    story: string;
+    question: string;
+    letStatement: string;
+  };
 };
 
 export type LitChoice = PracticeChoice;

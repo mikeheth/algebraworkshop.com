@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Pause, Play, BookOpen } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EquationView } from "@/components/solver/colored-math";
@@ -72,7 +72,7 @@ export function LiteralApp() {
     if (partial.stepFilter !== undefined && partial.stepFilter !== settings.stepFilter) {
       rebuild(next);
     }
-    if (partial.numericTwin !== undefined && partial.numericTwin !== settings.numericTwin) {
+    if (partial.wordProblem !== undefined && partial.wordProblem !== settings.wordProblem) {
       rebuild(next);
     }
   };
@@ -215,26 +215,38 @@ export function LiteralApp() {
 
           {problem ? (
             <div className="rounded-xl bg-surface p-5 shadow-[var(--shadow-border)] sm:p-6">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <h2 className="font-display text-xl tracking-tight">{problem.spec.name}</h2>
-                <Badge tone="accent">{problem.spec.context}</Badge>
-              </div>
-              <p className="font-display text-2xl tracking-tight text-var">{problem.prompt}</p>
-              <p className="mt-1 text-sm text-ink-soft">
-                Teal is {problem.target}. Orange letters stay as letters.
-              </p>
-            </div>
-          ) : null}
-
-          {problem?.twin ? (
-            <div className="rounded-xl bg-surface p-5 shadow-[var(--shadow-border)] sm:p-6">
-              <p className="text-xs font-medium tracking-[0.18em] text-muted uppercase">
-                Same inverse with numbers
-              </p>
-              <div className="mt-3">
-                <EquationView line={problem.twin.line} size="md" />
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-ink-soft">{problem.twin.note}</p>
+              {problem.word ? (
+                <>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <BookOpen className="size-4 text-accent" />
+                    <h2 className="font-display text-xl tracking-tight">Word problem</h2>
+                    <Badge tone="accent">{problem.spec.name}</Badge>
+                  </div>
+                  <p className="max-w-prose text-base leading-relaxed text-ink">
+                    {problem.word.story}
+                  </p>
+                  <p className="mt-3 font-display text-2xl tracking-tight text-var">
+                    {problem.word.question}
+                  </p>
+                  <p className="mt-2 font-display text-sm italic text-var">
+                    {problem.word.letStatement}
+                  </p>
+                  <p className="mt-3 text-sm text-ink-soft">
+                    Isolate {problem.target} in the formula first. Teal is the unknown.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h2 className="font-display text-xl tracking-tight">{problem.spec.name}</h2>
+                    <Badge tone="accent">{problem.spec.context}</Badge>
+                  </div>
+                  <p className="font-display text-2xl tracking-tight text-var">{problem.prompt}</p>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    Teal is {problem.target}. Orange letters stay as letters.
+                  </p>
+                </>
+              )}
             </div>
           ) : null}
 

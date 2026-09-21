@@ -73,31 +73,6 @@ describe("literal equations", () => {
     }
   });
 
-  it("attaches a numeric twin when asked", () => {
-    for (let i = 0; i < 15; i++) {
-      const p = generateLiteral({ ...DEFAULT_LIT_SETTINGS, numericTwin: true });
-      assert.ok(p.twin, p.spec.id);
-      assert.match(p.twin.note, /same/i);
-    }
-  });
-
-  it("parenthesizes two number factors in the twin so they are not a two-digit number", () => {
-    let hits = 0;
-    for (let i = 0; i < 40; i++) {
-      const p = generateLiteral({
-        ...DEFAULT_LIT_SETTINGS,
-        stepFilter: 2,
-        numericTwin: true,
-      });
-      if (p.spec.id !== "slope" && p.spec.id !== "motion") continue;
-      if (p.target !== "b" && p.target !== "u") continue;
-      hits += 1;
-      const shown = equationPlain(p.twin!.line);
-      assert.match(shown, /\(\d+\)\(\d+\)/, shown);
-    }
-    assert.ok(hits > 0, "expected at least one solve-for-addend twin");
-  });
-
   it("starts the check by restating the original formula", () => {
     for (const spec of FORMULAS) {
       const target = spec.solveFor[0]!;
@@ -153,5 +128,22 @@ describe("literal equations", () => {
     const simplify = steps.findIndex((s) => s.property === "Simplify");
     assert.ok(simplify > 1);
     assert.equal(canAskPractice(steps, simplify + 1), false);
+  });
+
+  it("writes a story when word problems are on", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const p = generateLiteral({
+        ...DEFAULT_LIT_SETTINGS,
+        wordProblem: true,
+      });
+      assert.ok(p.word, p.spec.id);
+      assert.match(p.word.story, /Use [A-Za-z] =/);
+      assert.match(p.word.question, /Solve the formula for/);
+      seen.add(p.spec.id);
+    }
+    for (const id of ["force", "distance", "area", "ohms", "interest", "perimeter"]) {
+      assert.ok(seen.has(id), `missing ${id}`);
+    }
   });
 });

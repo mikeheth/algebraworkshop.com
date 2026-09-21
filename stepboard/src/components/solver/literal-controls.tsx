@@ -73,10 +73,10 @@ export function LiteralControls({
         <Separator />
 
         <ToggleRow
-          label="Number twin"
-          hint="Show the same inverse with numbers first"
-          checked={settings.numericTwin}
-          onCheckedChange={(numericTwin) => onChange({ numericTwin })}
+          label="Word problem"
+          hint="A story that uses this formula. Isolate the letter, then plug in."
+          checked={settings.wordProblem}
+          onCheckedChange={(wordProblem) => onChange({ wordProblem })}
         />
         <ToggleRow
           label="Practice mode"
@@ -102,7 +102,7 @@ export function LiteralControls({
         <p className="text-xs leading-relaxed text-muted">
           The teal letter is what you solve for. Orange letters are the other
           quantities in the formula. A new formula matches the current steps
-          and Number twin setting.
+          and switches.
         </p>
       </div>
     </aside>
