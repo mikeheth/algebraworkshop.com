@@ -1,5 +1,6 @@
 import type { EquationLine, MathToken, SolveStep } from "../algebra/types.ts";
 import type { FormulaSpec } from "./types.ts";
+import type { LitWord } from "./word-problems.ts";
 import {
   addSubAnnotation,
   frac,
@@ -86,6 +87,35 @@ function startCheck(
   );
 }
 
+export function appendNowSolve(steps: SolveStep[], word: LitWord): void {
+  const sol = steps.find((s) => s.isSolution);
+  const { apply } = word;
+  if (sol) {
+    steps.push(
+      step(sol.line, "Substitute the given numbers into:", "Now solve", { isApply: true }),
+    );
+  }
+  steps.push(
+    step(
+      apply.plugged,
+      `Replace the other letters with the given numbers.`,
+      "Substitute",
+      { isApply: true },
+    ),
+  );
+  if (apply.simplified) {
+    steps.push(
+      step(
+        apply.simplified,
+        apply.simplifyNote ?? "Simplify the numbers.",
+        "Simplify",
+        { isApply: true },
+      ),
+    );
+  }
+  steps.push(step(apply.result, apply.conclusion, "Answer", { isApply: true }));
+}
+
 export function solveLiteral(spec: FormulaSpec, target: string): SolveStep[] {
   seq = 0;
   const shape = spec.shape;
@@ -93,6 +123,8 @@ export function solveLiteral(spec: FormulaSpec, target: string): SolveStep[] {
   if (shape.type === "linear") return solveLinear(shape.y, shape.m, shape.x, shape.b, target);
   if (shape.type === "scaled-sum") return solveScaledSum(shape.p, shape.coef, shape.a, shape.b, target);
   if (shape.type === "axc") return solveAxc(shape.a, shape.x, shape.b, shape.c, target);
+  if (shape.type === "half-product") return solveHalfProduct(shape.isolated, shape.a, shape.b, target);
+  if (shape.type === "mean") return solveMean(shape.m, shape.a, shape.b, target);
   return solveTemp(target);
 }
 
@@ -402,6 +434,128 @@ function solveAxc(a: string, x: string, b: string, c: string, target: string): S
     ),
   );
   void target;
+  return steps;
+}
+
+function solveHalfProduct(isolated: string, a: string, b: string, target: string): SolveStep[] {
+  const other = target === a ? b : a;
+  const steps: SolveStep[] = [];
+  const half = frac([num(1)], [num(2)]);
+  const original = line([param(isolated)], [half, letter(a, target), letter(b, target)]);
+  steps.push(
+    step(
+      original,
+      `${isolated} is one-half of ${a} times ${b}. Multiply by 2, then divide by ${other}.`,
+      "Given equation",
+      { isOriginal: true },
+    ),
+  );
+  const two = [num(2)];
+  steps.push(
+    step(
+      line([...two, ...group([param(isolated)])], [...two, ...group([half, letter(a, target), letter(b, target)])]),
+      "Multiply both sides by 2 to undo the one-half.",
+      "Multiplication Property of Equality",
+      { operation: { kind: "multiply", value: 2 }, annotation: mulAnnotation(two) },
+    ),
+  );
+  const afterMul = line([num(2), param(isolated)], [letter(a, target), letter(b, target)]);
+  steps.push(step(afterMul, "2 · (1/2) cancels. The product remains.", "Simplify"));
+  steps.push(
+    step(
+      line(over(afterMul.left, [param(other)]), over(afterMul.right, [param(other)])),
+      `Divide both sides by ${other} to isolate ${target}.`,
+      "Division Property of Equality",
+      { operation: { kind: "divide", variable: other } },
+    ),
+  );
+  const afterDiv = line([frac([num(2), param(isolated)], [param(other)])], [unk(target)]);
+  steps.push(step(afterDiv, `${other} cancels. ${target} is alone.`, "Simplify"));
+  const swapped = swapToTarget(steps, afterDiv, target);
+  markSolution(steps, target, plain(swapped.right));
+  startCheck(steps, original, target, plain(swapped.right));
+  const pluggedRight =
+    target === a
+      ? [half, op("("), ...swapped.right, op(")"), letter(b, target)]
+      : [half, letter(a, target), op("("), ...swapped.right, op(")")];
+  steps.push(
+    step(
+      line([param(isolated)], pluggedRight),
+      `Replace ${target} with ${plain(swapped.right)}.`,
+      "Substitute",
+      { isCheck: true },
+    ),
+  );
+  steps.push(
+    step(
+      line([param(isolated)], [param(isolated)]),
+      `${isolated} = ${isolated}, so the formula checks.`,
+      "True statement",
+      { isCheck: true },
+    ),
+  );
+  return steps;
+}
+
+function solveMean(m: string, a: string, b: string, target: string): SolveStep[] {
+  const other = target === a ? b : a;
+  const steps: SolveStep[] = [];
+  const original = line([param(m)], [frac([letter(a, target), op("+"), letter(b, target)], [num(2)])]);
+  steps.push(
+    step(
+      original,
+      `${m} is the average of ${a} and ${b}. Multiply by 2, then subtract the other number.`,
+      "Given equation",
+      { isOriginal: true },
+    ),
+  );
+  const two = [num(2)];
+  steps.push(
+    step(
+      line([...two, ...group(original.left)], [...two, ...group(original.right)]),
+      "Multiply both sides by 2 to undo dividing by 2.",
+      "Multiplication Property of Equality",
+      { operation: { kind: "multiply", value: 2 }, annotation: mulAnnotation(two) },
+    ),
+  );
+  const afterMul = line([num(2), param(m)], [letter(a, target), op("+"), letter(b, target)]);
+  steps.push(step(afterMul, "The 2s cancel. The sum remains.", "Simplify"));
+  steps.push(
+    step(
+      afterMul,
+      `Subtract ${other} from both sides.`,
+      "Subtraction Property of Equality",
+      {
+        operation: { kind: "subtract", variable: other },
+        annotation: addSubAnnotation("subtract", [param(other)]),
+      },
+    ),
+  );
+  const afterSub = line([num(2), param(m), op("−"), param(other)], [unk(target)]);
+  steps.push(step(afterSub, `${other} cancels. ${target} is isolated.`, "Simplify"));
+  const swapped = swapToTarget(steps, afterSub, target);
+  markSolution(steps, target, plain(swapped.right));
+  startCheck(steps, original, target, plain(swapped.right));
+  const pluggedNum =
+    target === a
+      ? [...swapped.right, op("+"), param(b)]
+      : [param(a), op("+"), ...swapped.right];
+  steps.push(
+    step(
+      line([param(m)], [frac(pluggedNum, [num(2)])]),
+      `Replace ${target} with ${plain(swapped.right)}.`,
+      "Substitute",
+      { isCheck: true },
+    ),
+  );
+  steps.push(
+    step(
+      line([param(m)], [param(m)]),
+      `${m} = ${m}, so the formula checks.`,
+      "True statement",
+      { isCheck: true },
+    ),
+  );
   return steps;
 }
 

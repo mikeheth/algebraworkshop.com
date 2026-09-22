@@ -155,16 +155,23 @@ export function LiteralApp() {
     for (const step of shown) {
       const prev = next[next.length - 1];
       if (prev && equationPlain(prev.line) === equationPlain(step.line)) {
-        next[next.length - 1] = {
-          ...prev,
-          annotation: step.annotation ?? prev.annotation,
-          explanation: step.explanation,
-          property: step.property,
-          operation: step.operation ?? prev.operation,
-          isSolution: step.isSolution || prev.isSolution,
-          isCheck: step.isCheck || prev.isCheck,
-        };
-        continue;
+        const samePhase =
+          !!prev.isCheck === !!step.isCheck &&
+          !!prev.isApply === !!step.isApply &&
+          !!prev.isSolution === !!step.isSolution;
+        if (samePhase) {
+          next[next.length - 1] = {
+            ...prev,
+            annotation: step.annotation ?? prev.annotation,
+            explanation: step.explanation,
+            property: step.property,
+            operation: step.operation ?? prev.operation,
+            isSolution: step.isSolution || prev.isSolution,
+            isCheck: step.isCheck || prev.isCheck,
+            isApply: step.isApply || prev.isApply,
+          };
+          continue;
+        }
       }
       next.push(step);
     }
@@ -271,14 +278,17 @@ export function LiteralApp() {
                   const active = i === rows.length - 1;
                   const firstCheck =
                     !!step.isCheck && !rows.slice(0, i).some((s) => s.isCheck);
+                  const firstApply =
+                    !!step.isApply && !rows.slice(0, i).some((s) => s.isApply);
+                  const heading = firstCheck || firstApply;
                   return (
                     <div
                       key={step.id}
                       className={cn(
                         "step-enter border-l-2 pl-4 transition-colors duration-200",
-                        active && !firstCheck ? "border-accent" : "border-transparent",
+                        active && !heading ? "border-accent" : "border-transparent",
                         step.isSolution && "pb-2",
-                        firstCheck && "mt-4 border-l-transparent pt-6",
+                        heading && "mt-4 border-l-transparent pt-6",
                       )}
                     >
                       {firstCheck ? (
@@ -292,13 +302,26 @@ export function LiteralApp() {
                           </p>
                         </div>
                       ) : null}
+                      {firstApply ? (
+                        <div className="mb-5 max-w-xl">
+                          <div className="mb-5 border-t border-line-strong" />
+                          <p className="text-xs font-medium tracking-[0.16em] text-muted uppercase">
+                            Now solve
+                          </p>
+                          <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                            {step.explanation}
+                          </p>
+                        </div>
+                      ) : null}
                       <EquationView
                         line={step.line}
                         annotation={step.annotation}
-                        size={step.isOriginal || step.isSolution || firstCheck ? "xl" : "lg"}
+                        size={
+                          step.isOriginal || step.isSolution || heading ? "xl" : "lg"
+                        }
                         className={cn(!active && "opacity-70")}
                       />
-                      {active && !firstCheck ? (
+                      {active && !heading ? (
                         <div className="mt-3 max-w-xl">
                           <p className="text-xs font-medium tracking-[0.16em] text-muted uppercase">
                             {step.property}

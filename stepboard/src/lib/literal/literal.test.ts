@@ -132,7 +132,7 @@ describe("literal equations", () => {
 
   it("writes a story when word problems are on", () => {
     const seen = new Set<string>();
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 80; i++) {
       const p = generateLiteral({
         ...DEFAULT_LIT_SETTINGS,
         wordProblem: true,
@@ -140,10 +140,39 @@ describe("literal equations", () => {
       assert.ok(p.word, p.spec.id);
       assert.match(p.word.story, /Use [A-Za-z] =/);
       assert.match(p.word.question, /Solve the formula for/);
+      assert.match(p.word.letStatement, /Let .+ Let /);
       seen.add(p.spec.id);
+      const checkIdx = p.steps.findIndex((s) => s.isCheck);
+      const applyIdx = p.steps.findIndex((s) => s.isApply);
+      assert.ok(checkIdx >= 0, p.spec.id);
+      assert.ok(applyIdx > checkIdx, `apply after check (${p.spec.id})`);
+      const applySteps = p.steps.filter((s) => s.isApply);
+      assert.ok(applySteps.length >= 2, p.spec.id);
+      assert.equal(applySteps[0]!.explanation, "Substitute the given numbers into:");
+      const sol = p.steps.find((s) => s.isSolution)!;
+      assert.equal(equationPlain(applySteps[0]!.line), equationPlain(sol.line));
     }
     for (const id of ["force", "distance", "area", "ohms", "interest", "perimeter"]) {
       assert.ok(seen.has(id), `missing ${id}`);
     }
+  });
+
+  it("varies two-step word problems beyond perimeter", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 50; i++) {
+      const p = generateLiteral({
+        ...DEFAULT_LIT_SETTINGS,
+        wordProblem: true,
+        stepFilter: 2,
+      });
+      assert.equal(p.spec.steps, 2);
+      assert.ok(p.word, p.spec.id);
+      seen.add(p.spec.id);
+    }
+    assert.ok(seen.size >= 4, [...seen].join(", "));
+    assert.ok(
+      ["triangle", "mean", "cost", "motion", "slope", "temp"].some((id) => seen.has(id)),
+      [...seen].join(", "),
+    );
   });
 });

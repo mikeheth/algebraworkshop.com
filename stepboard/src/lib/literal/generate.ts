@@ -1,6 +1,6 @@
 import { pick } from "../algebra/random.ts";
 import { formulasFor } from "./formulas.ts";
-import { solveLiteral } from "./solve.ts";
+import { appendNowSolve, solveLiteral } from "./solve.ts";
 import type { LitProblem, LitSettings } from "./types.ts";
 import { makeLitWord, wordTargets } from "./word-problems.ts";
 
@@ -22,8 +22,13 @@ export function generateLiteral(settings: LitSettings): LitProblem {
   if (settings.wordProblem) {
     const word = makeLitWord(spec, target);
     if (word) {
-      problem.word = word;
+      problem.word = {
+        story: word.story,
+        question: word.question,
+        letStatement: word.letStatement,
+      };
       problem.prompt = word.question;
+      appendNowSolve(problem.steps, word);
     }
   }
   return problem;

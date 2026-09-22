@@ -49,12 +49,28 @@ export type AxcShape = {
 
 export type TempFShape = { type: "temp-f" };
 
+export type HalfProductShape = {
+  type: "half-product";
+  isolated: string;
+  a: string;
+  b: string;
+};
+
+export type MeanShape = {
+  type: "mean";
+  m: string;
+  a: string;
+  b: string;
+};
+
 export type FormulaShape =
   | ProductShape
   | LinearShape
   | ScaledSumShape
   | AxcShape
-  | TempFShape;
+  | TempFShape
+  | HalfProductShape
+  | MeanShape;
 
 export type FormulaSpec = {
   id: string;

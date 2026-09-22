@@ -97,6 +97,30 @@ export const FORMULAS: FormulaSpec[] = [
     shape: { type: "temp-f" },
     solveFor: ["C"],
   },
+  {
+    id: "cost",
+    name: "Linear cost",
+    context: "A fee plus a unit price",
+    steps: 2,
+    shape: { type: "linear", y: "C", m: "p", x: "n", b: "f" },
+    solveFor: ["n", "f"],
+  },
+  {
+    id: "triangle",
+    name: "Triangle area",
+    context: "One-half base times height",
+    steps: 2,
+    shape: { type: "half-product", isolated: "A", a: "b", b: "h" },
+    solveFor: ["b", "h"],
+  },
+  {
+    id: "mean",
+    name: "Average",
+    context: "The mean of two numbers",
+    steps: 2,
+    shape: { type: "mean", m: "M", a: "x", b: "y" },
+    solveFor: ["x", "y"],
+  },
 ];
 
 export function formulasFor(stepFilter: 1 | 2 | "mix"): FormulaSpec[] {

@@ -80,6 +80,7 @@ export type SolveStep = {
   isOriginal?: boolean;
   isSolution?: boolean;
   isCheck?: boolean;
+  isApply?: boolean;
 };
 
 export type PracticeChoice = {

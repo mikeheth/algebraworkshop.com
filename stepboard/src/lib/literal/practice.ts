@@ -36,7 +36,7 @@ export function literalPracticeChoices(current: SolveStep, all: SolveStep[]): Pr
   let next: SolveStep | undefined;
   for (let i = idx + 1; i < all.length; i++) {
     const s = all[i]!;
-    if (s.isCheck) continue;
+    if (s.isCheck || s.isApply) continue;
     if (s.operation) {
       next = s;
       break;
@@ -137,15 +137,16 @@ export function literalPracticeChoices(current: SolveStep, all: SolveStep[]): Pr
         value: op.value,
         variable: op.variable,
         correct: false,
-        whyWrong: "The coefficient is a fraction. Multiply by its reciprocal.",
+        whyWrong: "Division is the inverse of multiplication. Here you still need to multiply.",
       });
       push({
         id: "d-sub",
-        label: "Subtract 32 from both sides",
+        label: labelFor("subtract", op.value ?? 2, op.variable),
         kind: "subtract",
-        value: 32,
+        value: op.value ?? 2,
+        variable: op.variable,
         correct: false,
-        whyWrong: "32 is already gone. Multiply by the reciprocal of 9/5.",
+        whyWrong: "Subtraction does not undo a factor of 1/2. Multiply by 2.",
       });
     }
   }
@@ -171,6 +172,6 @@ export function literalPracticeChoices(current: SolveStep, all: SolveStep[]): Pr
 export function canAskPractice(steps: SolveStep[], shownCount: number): boolean {
   const current = steps[shownCount - 1];
   const upcoming = steps[shownCount];
-  if (!current || current.isSolution || current.isCheck) return false;
-  return !!upcoming?.operation;
+  if (!current || current.isSolution || current.isCheck || current.isApply) return false;
+  return !!upcoming?.operation && !upcoming.isCheck && !upcoming.isApply;
 }
