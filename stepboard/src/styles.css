@@ -125,6 +125,10 @@
     color: var(--color-const);
   }
 
+  .tok-sub {
+    color: #c2302a;
+  }
+
   .step-enter {
     animation: step-in 400ms var(--ease-out) both;
   }

@@ -42,13 +42,15 @@ export type Presentation =
   | { form: "combine"; a: number; b1: number; b2: number }
   | { form: "quotient"; innerB: number; divisor: number; right: number };
 
+type SubMark = { sub?: boolean };
+
 export type MathToken =
-  | { type: "coef"; value: number }
-  | { type: "var"; letter: string; param?: boolean }
-  | { type: "const"; value: number }
-  | { type: "op"; value: string }
-  | { type: "frac"; num: MathToken[]; den: MathToken[] }
-  | { type: "group"; tokens: MathToken[] };
+  | (SubMark & { type: "coef"; value: number })
+  | (SubMark & { type: "var"; letter: string; param?: boolean })
+  | (SubMark & { type: "const"; value: number })
+  | (SubMark & { type: "op"; value: string })
+  | (SubMark & { type: "frac"; num: MathToken[]; den: MathToken[] })
+  | (SubMark & { type: "group"; tokens: MathToken[] });
 
 export type EquationLine = {
   left: MathToken[];

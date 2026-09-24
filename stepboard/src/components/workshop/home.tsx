@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { FunctionSquare, Lock, Scale } from "lucide-react";
+import { ArrowLeftRight, Columns2, FunctionSquare, Lock, Scale } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export function WorkshopHome() {
@@ -15,8 +15,8 @@ export function WorkshopHome() {
           </h1>
           <p className="mt-2 max-w-lg text-base text-ink-soft">
             Line-by-line Algebra 1, built for the board. Stepboard is free.
-            Inequalities and Literal equations are Plus — preview them until
-            billing opens.
+            Inequalities, literal equations, and substitution are Plus — preview
+            them until billing opens. Elimination is coming soon.
           </p>
         </div>
       </header>
@@ -80,6 +80,41 @@ export function WorkshopHome() {
             Preview literal equations
           </p>
         </Link>
+
+        <Link
+          to="/systems-substitution"
+          className="group flex min-h-44 flex-col rounded-xl bg-surface p-6 shadow-[var(--shadow-border)] transition-shadow duration-200 hover:shadow-[var(--shadow-border-hover)]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <Badge tone="accent">Plus</Badge>
+            <ArrowLeftRight className="size-5 text-muted" />
+          </div>
+          <h2 className="mt-4 font-display text-3xl tracking-tight">
+            Substitution
+          </h2>
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">
+            Systems of two equations. Easy starts with a number, like x = 4.
+            Then an expression. Then isolate that expression first.
+          </p>
+          <p className="mt-6 text-sm font-medium text-accent">
+            Preview substitution
+          </p>
+        </Link>
+
+        <div className="flex min-h-44 flex-col rounded-xl bg-surface p-6 shadow-[var(--shadow-border)]">
+          <div className="flex items-center justify-between gap-3">
+            <Badge>Coming soon</Badge>
+            <Columns2 className="size-5 text-muted" />
+          </div>
+          <h2 className="mt-4 font-display text-3xl tracking-tight text-ink-soft">
+            Elimination
+          </h2>
+          <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-soft">
+            Systems of two equations. Add or subtract so one column cancels.
+            Multiply first when the coefficients do not match.
+          </p>
+          <p className="mt-6 text-sm font-medium text-muted">Coming soon</p>
+        </div>
       </main>
 
       <footer className="mx-auto max-w-5xl px-4 pb-10 sm:px-6">

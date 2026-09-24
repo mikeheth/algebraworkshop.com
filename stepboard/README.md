@@ -4,6 +4,8 @@ Line-by-line Algebra 1 for the classroom board.
 
 - **Stepboard** (free) — one-, two-, and three-step equations, with practice mode and word problems
 - **Inequalities** (Plus) — the same teaching board, with sign flip when multiplying or dividing by a negative, plus a number-line graph
+- **Literal equations** (Plus) — solve a formula for one letter
+- **Substitution** (Plus preview) — systems of two equations. Elimination is coming soon.
 
 Live: [algebraworkshop.com](https://algebraworkshop.com)
 

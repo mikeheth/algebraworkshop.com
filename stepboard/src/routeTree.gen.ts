@@ -13,6 +13,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as InequalitiesRouteImport } from './routes/inequalities'
 import { Route as LiteralsRouteImport } from './routes/literals'
 import { Route as StepboardRouteImport } from './routes/stepboard'
+import { Route as SystemsEliminationRouteImport } from './routes/systems-elimination'
+import { Route as SystemsSubstitutionRouteImport } from './routes/systems-substitution'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +36,32 @@ const StepboardRoute = StepboardRouteImport.update({
   path: '/stepboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemsEliminationRoute = SystemsEliminationRouteImport.update({
+  id: '/systems-elimination',
+  path: '/systems-elimination',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemsSubstitutionRoute = SystemsSubstitutionRouteImport.update({
+  id: '/systems-substitution',
+  path: '/systems-substitution',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/inequalities': typeof InequalitiesRoute
   '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
+  '/systems-elimination': typeof SystemsEliminationRoute
+  '/systems-substitution': typeof SystemsSubstitutionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/inequalities': typeof InequalitiesRoute
   '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
+  '/systems-elimination': typeof SystemsEliminationRoute
+  '/systems-substitution': typeof SystemsSubstitutionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +69,34 @@ export interface FileRoutesById {
   '/inequalities': typeof InequalitiesRoute
   '/literals': typeof LiteralsRoute
   '/stepboard': typeof StepboardRoute
+  '/systems-elimination': typeof SystemsEliminationRoute
+  '/systems-substitution': typeof SystemsSubstitutionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/inequalities' | '/literals' | '/stepboard'
+  fullPaths:
+    | '/'
+    | '/inequalities'
+    | '/literals'
+    | '/stepboard'
+    | '/systems-elimination'
+    | '/systems-substitution'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/inequalities' | '/literals' | '/stepboard'
-  id: '__root__' | '/' | '/inequalities' | '/literals' | '/stepboard'
+  to:
+    | '/'
+    | '/inequalities'
+    | '/literals'
+    | '/stepboard'
+    | '/systems-elimination'
+    | '/systems-substitution'
+  id:
+    | '__root__'
+    | '/'
+    | '/inequalities'
+    | '/literals'
+    | '/stepboard'
+    | '/systems-elimination'
+    | '/systems-substitution'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +104,8 @@ export interface RootRouteChildren {
   InequalitiesRoute: typeof InequalitiesRoute
   LiteralsRoute: typeof LiteralsRoute
   StepboardRoute: typeof StepboardRoute
+  SystemsEliminationRoute: typeof SystemsEliminationRoute
+  SystemsSubstitutionRoute: typeof SystemsSubstitutionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +138,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StepboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/systems-elimination': {
+      id: '/systems-elimination'
+      path: '/systems-elimination'
+      fullPath: '/systems-elimination'
+      preLoaderRoute: typeof SystemsEliminationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/systems-substitution': {
+      id: '/systems-substitution'
+      path: '/systems-substitution'
+      fullPath: '/systems-substitution'
+      preLoaderRoute: typeof SystemsSubstitutionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +160,8 @@ const rootRouteChildren: RootRouteChildren = {
   InequalitiesRoute: InequalitiesRoute,
   LiteralsRoute: LiteralsRoute,
   StepboardRoute: StepboardRoute,
+  SystemsEliminationRoute: SystemsEliminationRoute,
+  SystemsSubstitutionRoute: SystemsSubstitutionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
